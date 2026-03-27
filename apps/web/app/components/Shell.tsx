@@ -32,6 +32,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <Link
               key={href}
               href={href}
+              aria-current={isActive(href) ? 'page' : undefined}
               className={[
                 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
                 isActive(href)
@@ -65,6 +66,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <Link
             key={href}
             href={href}
+            aria-current={isActive(href) ? 'page' : undefined}
             className={[
               'flex flex-col items-center justify-center py-2 text-xs gap-0.5 transition-colors',
               isActive(href)
