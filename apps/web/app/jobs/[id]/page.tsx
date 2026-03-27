@@ -1,29 +1,29 @@
 // apps/web/app/jobs/[id]/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Shell from '../../components/Shell';
 import { localizeData, toChineseFieldName, toChineseValue } from '../../../lib/field_localizer';
 import { getJob, getJobResult } from '../../../lib/api';
 
 type EquityItem = { day?: string; equity?: number };
 
-const CHART_W = 860;
-const CHART_H = 260;
-const PAD = 28;
+const CHART_WIDTH = 860;
+const CHART_HEIGHT = 260;
+const CHART_PADDING = 28;
 
 function buildLinePath(values: number[], min: number, max: number) {
   if (values.length < 2) return '';
   const range = max - min;
-  const iw = CHART_W - PAD * 2;
-  const ih = CHART_H - PAD * 2;
-  const pts = values.map((v, i) => {
-    const x = PAD + (i / (values.length - 1)) * iw;
-    const r = range === 0 ? 0.5 : (max - v) / range;
-    const y = PAD + r * ih;
+  const innerW = CHART_WIDTH - CHART_PADDING * 2;
+  const innerH = CHART_HEIGHT - CHART_PADDING * 2;
+  const points = values.map((v, i) => {
+    const x = CHART_PADDING + (i / (values.length - 1)) * innerW;
+    const ratio = range === 0 ? 0.5 : (max - v) / range;
+    const y = CHART_PADDING + ratio * innerH;
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   });
-  return `M ${pts.join(' L ')}`;
+  return `M ${points.join(' L ')}`;
 }
 
 function formatMetricValue(key: string, value: number) {
@@ -65,13 +65,13 @@ function LineChart({ title, values, startLabel, endLabel, stroke }: {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <p className="text-xs font-semibold text-gray-900 mb-3">{title}</p>
-      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} width="100%" height={CHART_H * 0.4}>
-        <rect width={CHART_W} height={CHART_H} fill="#fff" />
+      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} width="100%" height={CHART_HEIGHT * 0.4}>
+        <rect width={CHART_WIDTH} height={CHART_HEIGHT} fill="#fff" />
         {[0.25, 0.5, 0.75].map((r) => (
           <line
             key={r}
-            x1={PAD} y1={PAD + (CHART_H - PAD * 2) * r}
-            x2={CHART_W - PAD} y2={PAD + (CHART_H - PAD * 2) * r}
+            x1={CHART_PADDING} y1={CHART_PADDING + (CHART_HEIGHT - CHART_PADDING * 2) * r}
+            x2={CHART_WIDTH - CHART_PADDING} y2={CHART_PADDING + (CHART_HEIGHT - CHART_PADDING * 2) * r}
             stroke="#f3f4f6" strokeWidth="1"
           />
         ))}
@@ -95,14 +95,18 @@ export default function JobPage({ params }: { params: { id: string } }) {
   const [timelineOpen, setTimelineOpen] = useState(true);
   const [jsonOpen, setJsonOpen] = useState(false);
 
+  const resultFetched = useRef(false);
+
   useEffect(() => {
+    resultFetched.current = false;
     const terminal = new Set(['completed', 'failed', 'dead-letter']);
     let timer: ReturnType<typeof setInterval> | null = null;
     const refresh = async () => {
       try {
         const s = await getJob(params.id);
         setStatus(s);
-        if (s.status === 'completed' && !result) {
+        if (s.status === 'completed' && !resultFetched.current) {
+          resultFetched.current = true;
           setResult(await getJobResult(params.id));
         }
         if (terminal.has(s.status) && timer) clearInterval(timer);
@@ -113,7 +117,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
     void refresh();
     timer = setInterval(refresh, 2000);
     return () => { if (timer) clearInterval(timer); };
-  }, [params.id, result]);
+  }, [params.id]);
 
   const metrics: Record<string, number> = result?.metrics ?? {};
   const metricKeys = Array.from(new Set([...METRIC_ORDER, ...Object.keys(metrics)]));

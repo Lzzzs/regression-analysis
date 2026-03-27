@@ -63,7 +63,7 @@ export default function JobsPage() {
           ...(all.items || []).filter((j: JobItem) => !dlIds.has(j.job_id)),
         ];
         setJobs(merged);
-        setTotal((all.total || 0) + (dl.items?.length || 0));
+        setTotal(all.total || 0);
       } else {
         setJobs(all.items || []);
         setTotal(all.total || 0);
