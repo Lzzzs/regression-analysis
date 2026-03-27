@@ -203,7 +203,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
                 {events.length === 0 && <p className="text-sm text-gray-400 mt-3">暂无事件</p>}
                 {events.map((event: any, idx: number) => (
                   <div key={`${event.at}-${idx}`} className="flex items-start gap-3 mt-3">
-                    <span className="mt-1 w-2 h-2 rounded-full bg-green-400 flex-shrink:0" />
+                    <span className="mt-1 w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
                     <div>
                       <span className="text-sm font-semibold text-gray-900">{toChineseValue(event.type || 'event')}</span>
                       <span className="text-xs text-gray-400 ml-2">@ {event.at || '-'}</span>
