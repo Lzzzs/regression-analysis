@@ -1,0 +1,122 @@
+<h2>提交任务页设计</h2>
+<p class="subtitle">表单布局对比 — 选一个你更喜欢的</p>
+
+<div class="split">
+
+  <!-- Option A: Single column, grouped sections -->
+  <div class="mockup">
+    <div class="mockup-header">A · 分组单列</div>
+    <div class="mockup-body" style="padding:0;font-family:system-ui;background:#fafafa">
+      <div style="display:flex;height:420px">
+        <!-- Sidebar -->
+        <div style="width:52px;background:#fff;border-right:1px solid #f3f4f6;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0">
+          <div style="width:20px;height:20px;background:#111;border-radius:4px;margin-bottom:12px"></div>
+          <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;background:#f3f4f6">📝</div>
+          <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px">📋</div>
+        </div>
+        <!-- Form content -->
+        <div style="flex:1;overflow:auto;padding:16px 14px">
+          <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:4px">提交回测任务</div>
+          <div style="font-size:10px;color:#9ca3af;margin-bottom:14px">自动生成快照并创建分析任务</div>
+
+          <!-- Section 1 -->
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:12px;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">分析区间</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <div style="flex:1">
+                <div style="font-size:10px;color:#6b7280;margin-bottom:3px">开始日期</div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:11px;color:#111;background:#fafafa">2026-01-05</div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:10px;color:#6b7280;margin-bottom:3px">结束日期</div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:11px;color:#111;background:#fafafa">2026-01-09</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#6b7280;margin-bottom:3px">再平衡频率</div>
+              <div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:11px;color:#111;background:#fafafa">月度 ▾</div>
+            </div>
+          </div>
+
+          <!-- Section 2 -->
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:12px;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">组合配置</div>
+            <div style="margin-bottom:8px">
+              <div style="font-size:10px;color:#6b7280;margin-bottom:3px">权重 JSON <span style="color:#ef4444">*</span></div>
+              <div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:10px;color:#374151;background:#fafafa;font-family:monospace;line-height:1.4">{"CSI300": 0.5,<br>"SPY": 0.5}</div>
+            </div>
+            <div style="margin-bottom:8px">
+              <div style="font-size:10px;color:#6b7280;margin-bottom:3px">资产列表 <span style="color:#9ca3af">可选</span></div>
+              <div style="border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:10px;color:#9ca3af;background:#fafafa;font-family:monospace">留空则自动推断</div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div style="background:#111;color:#fff;border-radius:8px;padding:10px;text-align:center;font-size:12px;font-weight:600">
+            一键分析
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Two column form on desktop -->
+  <div class="mockup">
+    <div class="mockup-header">B · 两栏布局（宽屏）</div>
+    <div class="mockup-body" style="padding:0;font-family:system-ui;background:#fafafa">
+      <div style="display:flex;height:420px">
+        <!-- Sidebar -->
+        <div style="width:52px;background:#fff;border-right:1px solid #f3f4f6;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0">
+          <div style="width:20px;height:20px;background:#111;border-radius:4px;margin-bottom:12px"></div>
+          <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;background:#f3f4f6">📝</div>
+          <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px">📋</div>
+        </div>
+        <!-- Two column content -->
+        <div style="flex:1;overflow:auto;padding:16px 14px">
+          <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:4px">提交回测任务</div>
+          <div style="font-size:10px;color:#9ca3af;margin-bottom:14px">自动生成快照并创建分析任务</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <!-- Left col -->
+            <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:12px">
+              <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">区间 & 频率</div>
+              <div style="margin-bottom:6px">
+                <div style="font-size:10px;color:#6b7280;margin-bottom:3px">开始</div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:5px 7px;font-size:10px;color:#111;background:#fafafa">2026-01-05</div>
+              </div>
+              <div style="margin-bottom:6px">
+                <div style="font-size:10px;color:#6b7280;margin-bottom:3px">结束</div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:5px 7px;font-size:10px;color:#111;background:#fafafa">2026-01-09</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:#6b7280;margin-bottom:3px">频率</div>
+                <div style="border:1px solid #e5e7eb;border-radius:6px;padding:5px 7px;font-size:10px;color:#111;background:#fafafa">月度 ▾</div>
+              </div>
+            </div>
+            <!-- Right col -->
+            <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:12px">
+              <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">组合权重</div>
+              <div style="border:1px solid #e5e7eb;border-radius:6px;padding:7px;font-size:9px;color:#374151;background:#fafafa;font-family:monospace;line-height:1.6;min-height:80px">{"CSI300": 0.5,<br>"SPY": 0.5}</div>
+            </div>
+          </div>
+
+          <!-- Optional fields collapsed -->
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">高级配置（可选）</div>
+              <div style="font-size:10px;color:#6b7280">展开 ▾</div>
+            </div>
+            <div style="font-size:10px;color:#9ca3af;margin-top:4px">资产列表 · 汇率对 · 数据源文件</div>
+          </div>
+
+          <div style="background:#111;color:#fff;border-radius:8px;padding:10px;text-align:center;font-size:12px;font-weight:600">
+            一键分析
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">A 更简洁统一，手机和桌面体验一致；B 在宽屏下利用空间更好，可选配置折叠隐藏减少视觉噪音。</p>

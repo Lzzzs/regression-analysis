@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Run unit and integration tests
+        run: python -m unittest discover -s tests -v
+      - name: Offline backtest guard
+        run: python -m unittest tests.test_portfolio_lab.PortfolioLabTests.test_network_guard_blocks_outbound_calls -v
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Build web app
+        working-directory: apps/web
+        run: npm run build

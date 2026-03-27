@@ -1,0 +1,10 @@
+{
+  "assets": [
+    {"identifier": "CSI300", "asset_type": "index", "market": "CN", "calendar": "a_share", "quote_currency": "CNY"},
+    {"identifier": "SPY", "asset_type": "etf", "market": "US", "calendar": "us_equity", "quote_currency": "USD"},
+    {"identifier": "BTC", "asset_type": "crypto", "market": "CRYPTO", "calendar": "crypto_7d", "quote_currency": "USD"}
+  ],
+  "fx_pair": "USD/CNY",
+  "coverage_start": "2026-01-05",
+  "week_end": "2026-01-09"
+}

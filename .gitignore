@@ -1,0 +1,22 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+# Web build/runtime
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.vercel/
+
+# Local runtime files
+.runtime/
+
+# Generated backtest artifacts
+data/jobs/
+data/job_results/
+data/runs/
+data/snapshots/
+
+# Env files
+.env
+apps/web/.env.local

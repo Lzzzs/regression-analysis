@@ -1,0 +1,119 @@
+<h2>任务详情页设计</h2>
+<p class="subtitle">指标卡片 + 折线图 + 执行时间线</p>
+
+<div class="mockup">
+  <div class="mockup-header">任务详情页（桌面）</div>
+  <div class="mockup-body" style="padding:0;font-family:system-ui;background:#fafafa">
+    <div style="display:flex;height:480px">
+      <!-- Sidebar -->
+      <div style="width:52px;background:#fff;border-right:1px solid #f3f4f6;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0">
+        <div style="width:20px;height:20px;background:#111;border-radius:4px;margin-bottom:12px"></div>
+        <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px">📝</div>
+        <div style="width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;background:#f3f4f6">📋</div>
+      </div>
+      <!-- Content -->
+      <div style="flex:1;overflow:auto;padding:16px 14px">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <a style="font-size:11px;color:#9ca3af;text-decoration:none">← 任务列表</a>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#111;font-family:monospace">job-abc123ef</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+              <span style="font-size:10px;background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:99px;font-weight:600">● 已完成</span>
+              <span style="font-size:10px;color:#9ca3af">重试 0/3</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics cards -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">年化收益</div>
+            <div style="font-size:18px;font-weight:700;color:#111">+12.4%</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">最大回撤</div>
+            <div style="font-size:18px;font-weight:700;color:#ef4444">-8.2%</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">夏普比率</div>
+            <div style="font-size:18px;font-weight:700;color:#111">1.340</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">年化波动率</div>
+            <div style="font-size:18px;font-weight:700;color:#111">9.3%</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">索提诺比率</div>
+            <div style="font-size:18px;font-weight:700;color:#111">1.820</div>
+          </div>
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">卡玛比率</div>
+            <div style="font-size:18px;font-weight:700;color:#111">0.951</div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <!-- Equity curve -->
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:6px">净值曲线</div>
+            <svg viewBox="0 0 200 60" width="100%" height="60">
+              <polyline points="0,55 30,45 60,42 90,25 120,22 150,10 200,6" fill="none" stroke="#111" stroke-width="1.5"/>
+              <polyline points="0,55 30,45 60,42 90,25 120,22 150,10 200,6 200,60 0,60" fill="rgba(0,0,0,0.04)" stroke="none"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-top:4px">
+              <span>2026-01-05</span><span>2026-01-09</span>
+            </div>
+          </div>
+          <!-- Drawdown curve -->
+          <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+            <div style="font-size:10px;font-weight:600;color:#111;margin-bottom:6px">回撤曲线</div>
+            <svg viewBox="0 0 200 60" width="100%" height="60">
+              <polyline points="0,5 30,5 60,20 90,5 120,5 150,30 170,5 200,5" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+              <polyline points="0,5 30,5 60,20 90,5 120,5 150,30 170,5 200,5 200,5 0,5" fill="rgba(239,68,68,0.06)" stroke="none"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:#9ca3af;margin-top:4px">
+              <span>2026-01-05</span><span>2026-01-09</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline (collapsible) -->
+        <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:600;color:#111">执行时间线</div>
+            <div style="font-size:10px;color:#9ca3af">收起 ▴</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:6px;height:6px;background:#22c55e;border-radius:99px;flex-shrink:0"></div>
+              <span style="font-size:10px;font-weight:600;color:#111">已入队</span>
+              <span style="font-size:10px;color:#9ca3af">@ 2026-01-09 14:23:01</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:6px;height:6px;background:#22c55e;border-radius:99px;flex-shrink:0"></div>
+              <span style="font-size:10px;font-weight:600;color:#111">开始运行</span>
+              <span style="font-size:10px;color:#9ca3af">@ 2026-01-09 14:23:05</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:6px;height:6px;background:#22c55e;border-radius:99px;flex-shrink:0"></div>
+              <span style="font-size:10px;font-weight:600;color:#111">已完成</span>
+              <span style="font-size:10px;color:#9ca3af">@ 2026-01-09 14:24:32</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw JSON collapsed -->
+        <div style="background:#fff;border:1px solid #f3f4f6;border-radius:8px;padding:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:10px;font-weight:600;color:#6b7280">原始 JSON 数据</div>
+            <div style="font-size:10px;color:#9ca3af">展开 ▾</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
