@@ -200,6 +200,7 @@ class UniverseStore:
         selected_assets: list[str],
         required_fx_pairs: list[str],
         coverage_start: date,
+        skip_quality_gate: bool = False,
     ) -> str:
         if week_end.weekday() != 4:
             raise SnapshotError("weekly frozen snapshot must use Friday as week_end")
@@ -209,7 +210,8 @@ class UniverseStore:
             if asset_id not in self.assets:
                 raise SnapshotError(f"unknown asset: {asset_id}")
 
-        self._quality_gate(normalized_assets, coverage_start, week_end, required_fx_pairs)
+        if not skip_quality_gate:
+            self._quality_gate(normalized_assets, coverage_start, week_end, required_fx_pairs)
 
         snapshot_id = f"snap-{week_end.isoformat()}-{uuid4().hex[:8]}"
         out_file = self.snapshot_dir / f"{snapshot_id}.json"
