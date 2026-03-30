@@ -35,22 +35,22 @@ class JobCreateRequest:
                 max_retries=int(payload["max_retries"]) if "max_retries" in payload else None,
             )
         except Exception as exc:
-            raise ContractError(f"invalid payload: {exc}") from exc
+            raise ContractError(f"请求参数无效: {exc}") from exc
         req.validate()
         return req
 
     def validate(self) -> None:
         if not self.snapshot_id:
-            raise ContractError("snapshot_id is required")
+            raise ContractError("缺少 snapshot_id")
         if not self.weights:
-            raise ContractError("weights cannot be empty")
+            raise ContractError("权重不能为空")
         total = sum(self.weights.values())
         if abs(total - 1.0) > 1e-6:
-            raise ContractError(f"weights must sum to 1.0, got {total}")
+            raise ContractError(f"权重合计必须为 1.0，当前为 {total}")
         if self.rebalance_frequency not in {"none", "monthly", "quarterly"}:
-            raise ContractError("rebalance_frequency must be none/monthly/quarterly")
+            raise ContractError("再平衡频率必须为 none/monthly/quarterly")
         if self.max_retries is not None and self.max_retries < 0:
-            raise ContractError("max_retries must be >= 0")
+            raise ContractError("最大重试次数不能为负数")
 
 
 @dataclass(slots=True)

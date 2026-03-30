@@ -63,7 +63,7 @@ class JobService:
     def job_result(self, job_id: str) -> dict[str, Any]:
         item = self.store.get(job_id)
         if item["status"] != "completed":
-            raise ContractError("job is not completed")
+            raise ContractError("任务尚未完成")
         result = self.store.get_result(job_id)
         response = JobResultResponse(
             job_id=job_id,

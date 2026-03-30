@@ -9,11 +9,13 @@ from .job_store import JobStore
 from .orchestration import AutoJobOrchestrator, map_auto_job_error
 from .snapshot_service import build_snapshot_service
 from .service import JobService
+from .inline_worker import InlineWorker
 
 store = JobStore()
 service = JobService(store)
 snapshot_service = build_snapshot_service()
 auto_job_orchestrator = AutoJobOrchestrator(service, snapshot_service)
+inline_worker = InlineWorker(store)
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -24,10 +26,7 @@ try:
     app = FastAPI(title="Portfolio Lab API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:3000",
-            "http://localhost:3000",
-        ],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -48,7 +47,9 @@ try:
     @app.post("/jobs/auto")
     def create_job_auto(payload: dict) -> dict:
         try:
-            return auto_job_orchestrator.create_job_auto(payload)
+            result = auto_job_orchestrator.create_job_auto(payload)
+            inline_worker.process_job(result["job_id"])
+            return result
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(map_auto_job_error(exc)))
 

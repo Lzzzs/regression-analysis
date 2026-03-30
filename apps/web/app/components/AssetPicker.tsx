@@ -100,7 +100,7 @@ export default function AssetPicker({ value, onChange }: Props) {
   }
 
   function removeAsset(code: string) {
-    onChange(value.filter((a) => a.code !== code));
+    onChange(autoDistribute(value.filter((a) => a.code !== code)));
   }
 
   function distributeEvenly() {

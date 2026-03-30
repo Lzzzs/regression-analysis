@@ -60,9 +60,9 @@ class AutoJobOrchestrator:
         start_date = date.fromisoformat(request.start_date)
         end_date = date.fromisoformat(request.end_date)
         if end_date.weekday() != 4:
-            raise ContractError("end_date must be Friday for weekly snapshot publishing")
+            raise ContractError("结束日期必须为周五（快照按周发布）")
         if start_date > end_date:
-            raise ContractError("start_date must be <= end_date")
+            raise ContractError("开始日期不能晚于结束日期")
 
         selected_assets_raw = payload.get("selected_assets")
         if selected_assets_raw is None:
@@ -70,11 +70,11 @@ class AutoJobOrchestrator:
         elif isinstance(selected_assets_raw, list) and selected_assets_raw:
             selected_assets = sorted({str(item).upper() for item in selected_assets_raw})
         else:
-            raise ContractError("selected_assets must be a non-empty list when provided")
+            raise ContractError("selected_assets 不能为空列表")
 
         missing_weight_assets = [asset for asset in request.weights if asset not in selected_assets]
         if missing_weight_assets:
-            raise ContractError(f"selected_assets must include all weight keys: {missing_weight_assets}")
+            raise ContractError(f"权重中包含未选中的资产: {missing_weight_assets}")
 
         assets_raw = payload.get("assets")  # list[{code, market, asset_type}] | None
         required_fx_raw = payload.get("required_fx_pairs")
@@ -87,7 +87,7 @@ class AutoJobOrchestrator:
         elif isinstance(required_fx_raw, list):
             required_fx_pairs = sorted({str(item).upper() for item in required_fx_raw})
         else:
-            raise ContractError("required_fx_pairs must be a list when provided")
+            raise ContractError("required_fx_pairs 必须为列表格式")
 
         snapshot_payload: dict[str, Any] = {
             "coverage_start": request.start_date,
@@ -126,4 +126,4 @@ def map_auto_job_error(exc: Exception) -> ContractError:
         return exc
     if isinstance(exc, (ValidationError, SnapshotError, FileNotFoundError)):
         return ContractError(str(exc))
-    return ContractError(f"auto job creation failed: {exc}")
+    return ContractError(f"一键分析失败: {exc}")

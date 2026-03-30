@@ -19,12 +19,13 @@ from portfolio_lab.data_adapters import AKShareFXProvider, AKSharePriceProvider
 
 class TestAKSharePriceProviderCNStock(unittest.TestCase):
     def test_fetches_cn_stock_rows(self):
+        """CN stock uses stock_zh_a_daily (Sina) as primary source."""
         mock_df = pd.DataFrame({
-            "日期": ["2026-01-05", "2026-01-06", "2026-01-09"],
-            "收盘": [4000.0, 4010.0, 4020.0],
+            "date": ["2026-01-05", "2026-01-06", "2026-01-09"],
+            "close": [4000.0, 4010.0, 4020.0],
         })
         with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.stock_zh_a_hist.return_value = mock_df
+            mock_ak.stock_zh_a_daily.return_value = mock_df
             provider = AKSharePriceProvider(market="cn")
             rows = provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "000300")
 
@@ -32,41 +33,36 @@ class TestAKSharePriceProviderCNStock(unittest.TestCase):
         self.assertEqual(rows[0]["day"], date(2026, 1, 5))
         self.assertAlmostEqual(rows[0]["close"], 4000.0)
         self.assertEqual(rows[0]["source"], "akshare")
-        mock_ak.stock_zh_a_hist.assert_called_once_with(
-            symbol="000300",
-            period="daily",
+        mock_ak.stock_zh_a_daily.assert_called_once_with(
+            symbol="sz000300",
             start_date="20260105",
             end_date="20260109",
             adjust="qfq",
         )
 
     def test_fetches_cn_etf_rows(self):
+        """CN ETF uses fund_etf_hist_sina as primary source."""
         mock_df = pd.DataFrame({
-            "日期": ["2026-01-05"],
-            "收盘": [3.5],
+            "date": ["2026-01-05"],
+            "close": [3.5],
         })
         with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.fund_etf_hist_em.return_value = mock_df
+            mock_ak.fund_etf_hist_sina.return_value = mock_df
             provider = AKSharePriceProvider(market="cn")
             # 510300 starts with '5' → ETF branch
             rows = provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "510300")
 
         self.assertEqual(len(rows), 1)
-        mock_ak.fund_etf_hist_em.assert_called_once_with(
-            symbol="510300",
-            period="daily",
-            start_date="20260105",
-            end_date="20260109",
-            adjust="qfq",
-        )
+        mock_ak.fund_etf_hist_sina.assert_called_once_with(symbol="sh510300")
 
     def test_fetches_cn_etf_159_prefix(self):
-        mock_df = pd.DataFrame({"日期": ["2026-01-05"], "收盘": [2.0]})
+        """159xxx ETFs use sz prefix for Sina."""
+        mock_df = pd.DataFrame({"date": ["2026-01-05"], "close": [2.0]})
         with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.fund_etf_hist_em.return_value = mock_df
+            mock_ak.fund_etf_hist_sina.return_value = mock_df
             provider = AKSharePriceProvider(market="cn")
             provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "159915")
-        mock_ak.fund_etf_hist_em.assert_called_once()
+        mock_ak.fund_etf_hist_sina.assert_called_once_with(symbol="sz159915")
 
 
 class TestAKSharePriceProviderUS(unittest.TestCase):

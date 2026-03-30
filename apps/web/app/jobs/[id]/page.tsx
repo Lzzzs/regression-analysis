@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import Shell from '../../components/Shell';
 import { localizeData, toChineseFieldName, toChineseValue } from '../../../lib/field_localizer';
 import { getJob, getJobResult } from '../../../lib/api';
@@ -9,21 +10,26 @@ import { getJob, getJobResult } from '../../../lib/api';
 type EquityItem = { day?: string; equity?: number };
 
 const CHART_WIDTH = 860;
-const CHART_HEIGHT = 260;
-const CHART_PADDING = 28;
+const CHART_HEIGHT = 400;
+const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 56 };
 
 function buildLinePath(values: number[], min: number, max: number) {
   if (values.length < 2) return '';
   const range = max - min;
-  const innerW = CHART_WIDTH - CHART_PADDING * 2;
-  const innerH = CHART_HEIGHT - CHART_PADDING * 2;
+  const innerW = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
+  const innerH = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
   const points = values.map((v, i) => {
-    const x = CHART_PADDING + (i / (values.length - 1)) * innerW;
+    const x = CHART_PADDING.left + (i / (values.length - 1)) * innerW;
     const ratio = range === 0 ? 0.5 : (max - v) / range;
-    const y = CHART_PADDING + ratio * innerH;
+    const y = CHART_PADDING.top + ratio * innerH;
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   });
   return `M ${points.join(' L ')}`;
+}
+
+function formatYLabel(value: number, isPercent: boolean): string {
+  if (isPercent) return `${(value * 100).toFixed(1)}%`;
+  return value >= 1000 ? value.toFixed(0) : value.toFixed(2);
 }
 
 function formatMetricValue(key: string, value: number) {
@@ -55,31 +61,40 @@ function statusBadge(status: string) {
   );
 }
 
-function LineChart({ title, values, startLabel, endLabel, stroke }: {
-  title: string; values: number[]; startLabel: string; endLabel: string; stroke: string;
+function LineChart({ title, values, startLabel, endLabel, stroke, isPercent = false }: {
+  title: string; values: number[]; startLabel: string; endLabel: string; stroke: string; isPercent?: boolean;
 }) {
   if (!values.length) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const path = buildLinePath(values, min, max);
+  const innerH = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
+  const gridLines = [0, 0.25, 0.5, 0.75, 1];
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <p className="text-xs font-semibold text-gray-900 mb-3">{title}</p>
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} width="100%" height={CHART_HEIGHT * 0.4}>
+      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="w-full" preserveAspectRatio="xMidYMid meet">
         <rect width={CHART_WIDTH} height={CHART_HEIGHT} fill="#fff" />
-        {[0.25, 0.5, 0.75].map((r) => (
-          <line
-            key={r}
-            x1={CHART_PADDING} y1={CHART_PADDING + (CHART_HEIGHT - CHART_PADDING * 2) * r}
-            x2={CHART_WIDTH - CHART_PADDING} y2={CHART_PADDING + (CHART_HEIGHT - CHART_PADDING * 2) * r}
-            stroke="#f3f4f6" strokeWidth="1"
-          />
-        ))}
-        {path && <path d={path} fill="none" stroke={stroke} strokeWidth="2" />}
+        {gridLines.map((r) => {
+          const y = CHART_PADDING.top + innerH * r;
+          const val = max - (max - min) * r;
+          return (
+            <g key={r}>
+              <line
+                x1={CHART_PADDING.left} y1={y}
+                x2={CHART_WIDTH - CHART_PADDING.right} y2={y}
+                stroke="#f3f4f6" strokeWidth="1"
+              />
+              <text x={CHART_PADDING.left - 6} y={y + 4} textAnchor="end" fill="#9ca3af" fontSize="11">
+                {formatYLabel(val, isPercent)}
+              </text>
+            </g>
+          );
+        })}
+        {path && <path d={path} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinejoin="round" />}
       </svg>
       <div className="flex justify-between text-xs text-gray-400 mt-1">
         <span>{startLabel}</span>
-        <span>min {min.toFixed(4)} / max {max.toFixed(4)}</span>
         <span>{endLabel}</span>
       </div>
     </div>
@@ -111,7 +126,13 @@ export default function JobPage({ params }: { params: { id: string } }) {
         }
         if (terminal.has(s.status) && timer) clearInterval(timer);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('404')) {
+          // Permanent error — stop polling
+          if (timer) clearInterval(timer);
+          setError('任务不存在，请检查任务 ID 是否正确');
+        }
+        // Transient errors: keep polling, don't overwrite existing status
       }
     };
     void refresh();
@@ -147,7 +168,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
     <Shell>
       <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
         {/* 面包屑 */}
-        <a href="/jobs" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">← 任务列表</a>
+        <Link href="/jobs" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">← 任务列表</Link>
 
         {/* 任务标题 */}
         <div className="flex flex-wrap items-center gap-3 mt-3 mb-6">
@@ -184,9 +205,9 @@ export default function JobPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* 图表 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+            <div className="space-y-4 mb-6">
               <LineChart title="净值曲线" values={equityValues} startLabel={startDay} endLabel={endDay} stroke="#111111" />
-              <LineChart title="回撤曲线" values={drawdownValues} startLabel={startDay} endLabel={endDay} stroke="#ef4444" />
+              <LineChart title="回撤曲线" values={drawdownValues} startLabel={startDay} endLabel={endDay} stroke="#ef4444" isPercent />
             </div>
           </>
         )}

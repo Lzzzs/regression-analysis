@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import json
+import os
 from datetime import date
 from pathlib import Path
 from typing import Protocol
@@ -258,6 +260,17 @@ except ImportError:  # allow import without akshare installed (e.g. offline test
     ak = None  # type: ignore[assignment]
 
 
+@contextlib.contextmanager
+def _no_proxy():
+    """Temporarily remove proxy env vars so AKShare connects directly."""
+    keys = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy")
+    saved = {k: os.environ.pop(k) for k in keys if k in os.environ}
+    try:
+        yield
+    finally:
+        os.environ.update(saved)
+
+
 def _akshare_fmt_date(d: date) -> str:
     return d.strftime("%Y%m%d")
 
@@ -278,41 +291,73 @@ class AKSharePriceProvider:
         s = symbol.upper()
         return s.startswith("5") or s.startswith("159")
 
+    @staticmethod
+    def _sina_prefix(symbol: str) -> str:
+        """Return Sina-style prefix: sh/sz based on symbol."""
+        if symbol.startswith("6") or symbol.startswith("5"):
+            return f"sh{symbol}"
+        return f"sz{symbol}"
+
+    def _fetch_cn(self, start: str, end: str, symbol: str):
+        """Fetch CN price data; try Sina first, fall back to eastmoney."""
+        if self._is_etf(symbol):
+            try:
+                df = ak.fund_etf_hist_sina(symbol=self._sina_prefix(symbol))
+                df["date"] = df["date"].astype(str)
+                df = df[(df["date"] >= f"{start[:4]}-{start[4:6]}-{start[6:]}") &
+                        (df["date"] <= f"{end[:4]}-{end[4:6]}-{end[6:]}")]
+                return df, "date", "close"
+            except Exception:
+                pass
+            df = ak.fund_etf_hist_em(
+                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+            )
+            return df, "日期", "收盘"
+        else:
+            try:
+                df = ak.stock_zh_a_daily(
+                    symbol=self._sina_prefix(symbol), start_date=start, end_date=end, adjust="qfq"
+                )
+                return df, "date", "close"
+            except Exception:
+                pass
+            df = ak.stock_zh_a_hist(
+                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+            )
+            return df, "日期", "收盘"
+
     def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
         if ak is None:
             raise ImportError("akshare is not installed")
         start = _akshare_fmt_date(start_date)
         end = _akshare_fmt_date(end_date)
-        if self.market == "cn":
-            if self._is_etf(symbol):
-                df = ak.fund_etf_hist_em(
+        with _no_proxy():
+            if self.market == "cn":
+                df, date_col, close_col = self._fetch_cn(start, end, symbol)
+            elif self.market == "us":
+                df = ak.stock_us_hist(
                     symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
                 )
+                date_col, close_col = "日期", "收盘"
+            elif self.market == "hk":
+                df = ak.stock_hk_hist(
+                    symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+                )
+                date_col, close_col = "日期", "收盘"
+            elif self.market == "crypto":
+                crypto_symbol = symbol.upper()
+                if not crypto_symbol.endswith("USDT"):
+                    crypto_symbol = crypto_symbol + "USDT"
+                df = ak.crypto_hist(symbol=crypto_symbol, period="daily", start_date=start, end_date=end)
+                date_col, close_col = "日期", "收盘"
             else:
-                df = ak.stock_zh_a_hist(
-                    symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
-                )
-        elif self.market == "us":
-            df = ak.stock_us_hist(
-                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
-            )
-        elif self.market == "hk":
-            df = ak.stock_hk_hist(
-                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
-            )
-        elif self.market == "crypto":
-            crypto_symbol = symbol.upper()
-            if not crypto_symbol.endswith("USDT"):
-                crypto_symbol = crypto_symbol + "USDT"
-            df = ak.crypto_hist(symbol=crypto_symbol, period="daily", start_date=start, end_date=end)
-        else:
-            raise ValidationError(f"unsupported market for AKSharePriceProvider: {self.market}")
+                raise ValidationError(f"unsupported market for AKSharePriceProvider: {self.market}")
 
         rows: list[dict] = []
         for _, row in df.iterrows():
             rows.append({
-                "day": date.fromisoformat(str(row["日期"])),
-                "close": float(row["收盘"]),
+                "day": date.fromisoformat(str(row[date_col])[:10]),
+                "close": float(row[close_col]),
                 "source": "akshare",
             })
         return rows
@@ -337,7 +382,8 @@ class AKShareFXProvider:
             raise ValidationError(f"unsupported FX pair for AKShareFXProvider: {pair}")
         start = _akshare_fmt_date(start_date)
         end = _akshare_fmt_date(end_date)
-        df = ak.currency_boc_sina(symbol=symbol, start_date=start, end_date=end)
+        with _no_proxy():
+            df = ak.currency_boc_sina(symbol=symbol, start_date=start, end_date=end)
         rows: list[dict] = []
         for _, row in df.iterrows():
             # 中行折算价 is in "分" (e.g. 729.21 = 7.2921 CNY per USD)

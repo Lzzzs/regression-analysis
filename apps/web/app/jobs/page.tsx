@@ -1,7 +1,8 @@
 // apps/web/app/jobs/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import Shell from '../components/Shell';
 import { toChineseFieldName, toChineseValue } from '../../lib/field_localizer';
 import { listDeadLetterJobs, listJobs, requeueJob } from '../../lib/api';
@@ -43,20 +44,32 @@ export default function JobsPage() {
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const offset = page * PAGE_SIZE;
   const hasPrev = page > 0;
   const hasNext = offset + jobs.length < total;
 
   const hasDeadLetter = useMemo(() => jobs.some((j) => j.status === 'dead-letter'), [jobs]);
 
+  // Debounce search input
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
   async function refresh() {
     setLoading(true);
     setError('');
     try {
-      const all = await listJobs({ status: status || undefined, q: search || undefined, limit: PAGE_SIZE, offset });
+      const all = await listJobs({ status: status || undefined, q: debouncedSearch || undefined, limit: PAGE_SIZE, offset });
       // 当没有筛选状态时，同时拉取死信任务合并展示
       if (!status) {
-        const dl = await listDeadLetterJobs({ q: search || undefined, limit: 100 });
+        const dl = await listDeadLetterJobs({ q: debouncedSearch || undefined, limit: 100 });
         const dlIds = new Set((dl.items || []).map((j: JobItem) => j.job_id));
         const merged = [
           ...(dl.items || []),
@@ -88,7 +101,7 @@ export default function JobsPage() {
     refresh();
     const timer = setInterval(refresh, 3000);
     return () => clearInterval(timer);
-  }, [status, search, page]);
+  }, [status, debouncedSearch, page]);
 
   return (
     <Shell>
@@ -152,9 +165,9 @@ export default function JobsPage() {
               {jobs.map((j) => (
                 <tr key={j.job_id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <a href={`/jobs/${j.job_id}`} className="font-mono text-blue-600 hover:underline text-xs">
+                    <Link href={`/jobs/${j.job_id}`} className="font-mono text-blue-600 hover:underline text-xs">
                       {j.job_id}
-                    </a>
+                    </Link>
                   </td>
                   <td className="px-4 py-3">{statusBadge(j.status)}</td>
                   <td className="px-4 py-3 text-gray-500">{j.retry_count ?? 0}/{j.max_retries ?? 0}</td>
@@ -187,9 +200,9 @@ export default function JobsPage() {
           {jobs.map((j) => (
             <div key={j.job_id} className="bg-white border border-gray-100 rounded-xl p-4">
               <div className="flex items-start justify-between gap-2 mb-1">
-                <a href={`/jobs/${j.job_id}`} className="font-mono text-blue-600 hover:underline text-xs break-all">
+                <Link href={`/jobs/${j.job_id}`} className="font-mono text-blue-600 hover:underline text-xs break-all">
                   {j.job_id}
-                </a>
+                </Link>
                 {statusBadge(j.status)}
               </div>
               <div className="text-xs text-gray-400">{j.created_at} · 重试 {j.retry_count ?? 0}/{j.max_retries ?? 0}</div>
