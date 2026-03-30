@@ -324,8 +324,8 @@ class AKShareFXProvider:
     name = "akshare"
 
     _PAIR_TO_SYMBOL = {
-        "USD/CNY": "USDCNY",
-        "HKD/CNY": "HKDCNY",
+        "USD/CNY": "美元",
+        "HKD/CNY": "港币",
     }
 
     def fetch_fx_rows(self, start_date: date, end_date: date, pair: str) -> list[dict]:
@@ -337,12 +337,16 @@ class AKShareFXProvider:
             raise ValidationError(f"unsupported FX pair for AKShareFXProvider: {pair}")
         start = _akshare_fmt_date(start_date)
         end = _akshare_fmt_date(end_date)
-        df = ak.currency_hist(symbol=symbol, period="daily", start_date=start, end_date=end)
+        df = ak.currency_boc_sina(symbol=symbol, start_date=start, end_date=end)
         rows: list[dict] = []
         for _, row in df.iterrows():
+            # 中行折算价 is in "分" (e.g. 729.21 = 7.2921 CNY per USD)
+            rate_raw = row.get("央行中间价")
+            if rate_raw is None or (isinstance(rate_raw, float) and rate_raw != rate_raw):
+                rate_raw = row.get("中行折算价")
             rows.append({
-                "day": date.fromisoformat(str(row["日期"])),
-                "rate": float(row["收盘"]),
+                "day": date.fromisoformat(str(row["日期"])[:10]),
+                "rate": float(rate_raw) / 100.0,
                 "source": "akshare",
             })
         return rows

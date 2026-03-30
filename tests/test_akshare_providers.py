@@ -142,9 +142,13 @@ class TestAKSharePriceProviderCrypto(unittest.TestCase):
 
 class TestAKShareFXProvider(unittest.TestCase):
     def test_fetches_usd_cny(self):
-        mock_df = pd.DataFrame({"日期": ["2026-01-05", "2026-01-06"], "收盘": [7.25, 7.26]})
+        mock_df = pd.DataFrame({
+            "日期": ["2026-01-05", "2026-01-06"],
+            "央行中间价": [725.0, 726.0],
+            "中行折算价": [725.0, 726.0],
+        })
         with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.currency_hist.return_value = mock_df
+            mock_ak.currency_boc_sina.return_value = mock_df
             provider = AKShareFXProvider()
             rows = provider.fetch_fx_rows(date(2026, 1, 5), date(2026, 1, 9), "USD/CNY")
 
@@ -152,26 +156,41 @@ class TestAKShareFXProvider(unittest.TestCase):
         self.assertAlmostEqual(rows[0]["rate"], 7.25)
         self.assertEqual(rows[0]["day"], date(2026, 1, 5))
         self.assertEqual(rows[0]["source"], "akshare")
-        mock_ak.currency_hist.assert_called_once_with(
-            symbol="USDCNY",
-            period="daily",
+        mock_ak.currency_boc_sina.assert_called_once_with(
+            symbol="美元",
             start_date="20260105",
             end_date="20260109",
         )
 
     def test_fetches_hkd_cny(self):
-        mock_df = pd.DataFrame({"日期": ["2026-01-05"], "收盘": [0.93]})
+        mock_df = pd.DataFrame({
+            "日期": ["2026-01-05"],
+            "央行中间价": [93.0],
+            "中行折算价": [93.0],
+        })
         with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.currency_hist.return_value = mock_df
+            mock_ak.currency_boc_sina.return_value = mock_df
             provider = AKShareFXProvider()
             rows = provider.fetch_fx_rows(date(2026, 1, 5), date(2026, 1, 9), "HKD/CNY")
 
-        mock_ak.currency_hist.assert_called_once_with(
-            symbol="HKDCNY",
-            period="daily",
+        mock_ak.currency_boc_sina.assert_called_once_with(
+            symbol="港币",
             start_date="20260105",
             end_date="20260109",
         )
+
+    def test_falls_back_to_折算价_when_央行中间价_is_nan(self):
+        mock_df = pd.DataFrame({
+            "日期": ["2026-01-05"],
+            "央行中间价": [float("nan")],
+            "中行折算价": [718.84],
+        })
+        with patch("portfolio_lab.data_adapters.ak") as mock_ak:
+            mock_ak.currency_boc_sina.return_value = mock_df
+            provider = AKShareFXProvider()
+            rows = provider.fetch_fx_rows(date(2026, 1, 5), date(2026, 1, 9), "USD/CNY")
+
+        self.assertAlmostEqual(rows[0]["rate"], 7.1884)
 
 
 class TestAKShareErrorPaths(unittest.TestCase):
