@@ -76,3 +76,22 @@ export async function requeueJob(jobId: string) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export type AssetItem = {
+  code: string;
+  name: string;
+  market: string;
+  asset_type: string;
+};
+
+export async function searchAssets(params: {
+  q: string;
+  market: string;
+  limit?: number;
+}): Promise<{ items: AssetItem[] }> {
+  const query = new URLSearchParams({ q: params.q, market: params.market });
+  if (params.limit != null) query.set('limit', String(params.limit));
+  const res = await fetch(`${API_BASE}/assets/search?${query}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
