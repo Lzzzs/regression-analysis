@@ -92,20 +92,38 @@ def _is_stale(cache: dict) -> bool:
     return cache["data"] is None or (time.time() - cache["ts"]) > _CACHE_TTL
 
 
+def _col(df: Any, *candidates: str) -> str:
+    """Find the first matching column name from candidates."""
+    for c in candidates:
+        if c in df.columns:
+            return c
+    raise KeyError(f"none of {candidates} found in columns {df.columns.tolist()}")
+
+
 def _fetch_cn_items() -> list[dict]:
     if ak is None:
         return []
     stocks_df = ak.stock_info_a_code_name()
-    etf_df = ak.fund_etf_spot_em()
+    code_col = _col(stocks_df, "code", "代码")
+    name_col = _col(stocks_df, "name", "名称")
     items: list[dict] = []
     for _, row in stocks_df.iterrows():
-        code = str(row["代码"]).strip()
-        if code.startswith("5") or code.startswith("159"):
-            continue  # will be added from ETF frame
-        items.append({"code": code, "name": str(row["名称"]).strip(), "market": "cn", "asset_type": "stock"})
-    for _, row in etf_df.iterrows():
-        code = str(row["代码"]).strip()
-        items.append({"code": code, "name": str(row["名称"]).strip(), "market": "cn", "asset_type": "etf"})
+        code = str(row[code_col]).strip()
+        # Shanghai ETFs: 51xxxx; Shenzhen ETFs: 159xxx
+        asset_type = "etf" if (code.startswith("5") or code.startswith("159")) else "stock"
+        items.append({"code": code, "name": str(row[name_col]).strip(), "market": "cn", "asset_type": asset_type})
+    # Try to supplement with dedicated ETF list (may fail due to network)
+    try:
+        etf_df = ak.fund_etf_spot_em()
+        etf_code_col = _col(etf_df, "代码", "code")
+        etf_name_col = _col(etf_df, "名称", "name")
+        existing_codes = {item["code"] for item in items}
+        for _, row in etf_df.iterrows():
+            code = str(row[etf_code_col]).strip()
+            if code not in existing_codes:
+                items.append({"code": code, "name": str(row[etf_name_col]).strip(), "market": "cn", "asset_type": "etf"})
+    except Exception:
+        pass  # ETF supplement failed, stock list still available
     return items
 
 
@@ -113,9 +131,11 @@ def _fetch_us_items() -> list[dict]:
     if ak is None:
         return []
     df = ak.stock_us_spot_em()
+    code_col = _col(df, "代码", "code")
+    name_col = _col(df, "名称", "name")
     items: list[dict] = []
     for _, row in df.iterrows():
-        items.append({"code": str(row["代码"]).strip(), "name": str(row["名称"]).strip(), "market": "us", "asset_type": "stock"})
+        items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "us", "asset_type": "stock"})
     return items
 
 
@@ -123,9 +143,11 @@ def _fetch_hk_items() -> list[dict]:
     if ak is None:
         return []
     df = ak.stock_hk_spot_em()
+    code_col = _col(df, "代码", "code")
+    name_col = _col(df, "名称", "name")
     items: list[dict] = []
     for _, row in df.iterrows():
-        items.append({"code": str(row["代码"]).strip(), "name": str(row["名称"]).strip(), "market": "hk", "asset_type": "stock"})
+        items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "hk", "asset_type": "stock"})
     return items
 
 
@@ -161,7 +183,10 @@ if _FASTAPI_AVAILABLE:
         if market_lower not in ("cn", "us", "hk", "crypto"):
             raise HTTPException(status_code=400, detail=f"unsupported market: {market}")
 
-        all_items = _get_cached_items(market_lower)
+        try:
+            all_items = _get_cached_items(market_lower)
+        except Exception:
+            all_items = []
         q_lower = q.strip().lower()
         if q_lower:
             filtered = [
