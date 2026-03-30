@@ -21,11 +21,12 @@ export default function Page() {
 
   const totalWeight = selectedAssets.reduce((sum, a) => sum + a.weight, 0);
   const weightOver = totalWeight > 100;
+  const weightOk = totalWeight === 100;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (weightOver) {
-      setError('权重合计超过 100%，请调整后再提交');
+    if (!weightOk) {
+      setError(weightOver ? '权重合计超过 100%，请调整后再提交' : '权重合计不足 100%，请调整后再提交');
       return;
     }
     setError('');
@@ -159,7 +160,7 @@ export default function Page() {
           {/* 提交按钮 */}
           <button
             type="submit"
-            disabled={loading || selectedAssets.length === 0 || weightOver}
+            disabled={loading || selectedAssets.length === 0 || !weightOk}
             className="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '分析中...' : '一键分析（自动生成快照 + 提交任务）'}
