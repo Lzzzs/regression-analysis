@@ -258,6 +258,10 @@ except ImportError:  # allow import without akshare installed (e.g. offline test
     ak = None  # type: ignore[assignment]
 
 
+def _akshare_fmt_date(d: date) -> str:
+    return d.strftime("%Y%m%d")
+
+
 class AKSharePriceProvider:
     """AKShare-backed price provider. One instance per market."""
 
@@ -268,19 +272,17 @@ class AKSharePriceProvider:
         self.market = market.lower()
 
     @staticmethod
-    def _fmt_date(d: date) -> str:
-        return d.strftime("%Y%m%d")
-
-    @staticmethod
     def _is_etf(symbol: str) -> bool:
+        # Shanghai ETFs: 51xxxx; Shenzhen ETFs: 159xxx.
+        # A-share stocks use 0/3/6 prefix — no false positives in practice.
         s = symbol.upper()
         return s.startswith("5") or s.startswith("159")
 
     def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
         if ak is None:
             raise ImportError("akshare is not installed")
-        start = self._fmt_date(start_date)
-        end = self._fmt_date(end_date)
+        start = _akshare_fmt_date(start_date)
+        end = _akshare_fmt_date(end_date)
         if self.market == "cn":
             if self._is_etf(symbol):
                 df = ak.fund_etf_hist_em(
@@ -326,10 +328,6 @@ class AKShareFXProvider:
         "HKD/CNY": "HKDCNY",
     }
 
-    @staticmethod
-    def _fmt_date(d: date) -> str:
-        return d.strftime("%Y%m%d")
-
     def fetch_fx_rows(self, start_date: date, end_date: date, pair: str) -> list[dict]:
         if ak is None:
             raise ImportError("akshare is not installed")
@@ -337,8 +335,8 @@ class AKShareFXProvider:
         symbol = self._PAIR_TO_SYMBOL.get(normalized)
         if not symbol:
             raise ValidationError(f"unsupported FX pair for AKShareFXProvider: {pair}")
-        start = self._fmt_date(start_date)
-        end = self._fmt_date(end_date)
+        start = _akshare_fmt_date(start_date)
+        end = _akshare_fmt_date(end_date)
         df = ak.currency_hist(symbol=symbol, period="daily", start_date=start, end_date=end)
         rows: list[dict] = []
         for _, row in df.iterrows():

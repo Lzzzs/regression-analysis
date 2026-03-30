@@ -5,7 +5,7 @@ import sys
 import unittest
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -172,6 +172,44 @@ class TestAKShareFXProvider(unittest.TestCase):
             start_date="20260105",
             end_date="20260109",
         )
+
+
+class TestAKShareErrorPaths(unittest.TestCase):
+    def test_price_provider_invalid_market_raises_validation_error(self):
+        from portfolio_lab.errors import ValidationError
+        with patch("portfolio_lab.data_adapters.ak"):
+            provider = AKSharePriceProvider(market="xyz")
+            with self.assertRaises(ValidationError):
+                provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "ABC")
+
+    def test_fx_provider_unsupported_pair_raises_validation_error(self):
+        from portfolio_lab.errors import ValidationError
+        with patch("portfolio_lab.data_adapters.ak"):
+            provider = AKShareFXProvider()
+            with self.assertRaises(ValidationError):
+                provider.fetch_fx_rows(date(2026, 1, 5), date(2026, 1, 9), "EUR/USD")
+
+    def test_price_provider_raises_import_error_when_ak_none(self):
+        import portfolio_lab.data_adapters as da
+        original_ak = da.ak
+        try:
+            da.ak = None
+            provider = AKSharePriceProvider(market="cn")
+            with self.assertRaises(ImportError):
+                provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "000300")
+        finally:
+            da.ak = original_ak
+
+    def test_fx_provider_raises_import_error_when_ak_none(self):
+        import portfolio_lab.data_adapters as da
+        original_ak = da.ak
+        try:
+            da.ak = None
+            provider = AKShareFXProvider()
+            with self.assertRaises(ImportError):
+                provider.fetch_fx_rows(date(2026, 1, 5), date(2026, 1, 9), "USD/CNY")
+        finally:
+            da.ak = original_ak
 
 
 if __name__ == "__main__":
