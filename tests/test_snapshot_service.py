@@ -104,5 +104,60 @@ class SnapshotServiceTests(unittest.TestCase):
             service.create_snapshot_from_providers(payload)
 
 
+class SnapshotServiceAKSharePathTests(unittest.TestCase):
+    """Test the new AKShare-powered path in SnapshotService."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.data_dir = Path(self.tmp.name) / "data"
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_akshare_path_builds_snapshot(self):
+        """When assets field is provided, use AKShare providers."""
+        from datetime import date
+        from unittest.mock import MagicMock, patch
+        from apps.api.snapshot_service import SnapshotService
+
+        mock_price_provider = MagicMock()
+        mock_price_provider.name = "akshare"
+        mock_price_provider.fetch_price_rows.return_value = [
+            {"day": date(2026, 1, 5), "close": 4000.0, "source": "akshare"},
+            {"day": date(2026, 1, 6), "close": 4010.0, "source": "akshare"},
+            {"day": date(2026, 1, 7), "close": 4020.0, "source": "akshare"},
+            {"day": date(2026, 1, 8), "close": 4030.0, "source": "akshare"},
+            {"day": date(2026, 1, 9), "close": 4040.0, "source": "akshare"},
+        ]
+        mock_fx_provider = MagicMock()
+        mock_fx_provider.name = "akshare"
+        mock_fx_provider.fetch_fx_rows.return_value = [
+            {"day": date(2026, 1, 5), "rate": 7.0, "source": "akshare"},
+            {"day": date(2026, 1, 6), "rate": 7.01, "source": "akshare"},
+            {"day": date(2026, 1, 7), "rate": 7.02, "source": "akshare"},
+            {"day": date(2026, 1, 8), "rate": 7.03, "source": "akshare"},
+            {"day": date(2026, 1, 9), "rate": 7.04, "source": "akshare"},
+        ]
+
+        with patch(
+            "apps.api.snapshot_service.AKSharePriceProvider",
+            return_value=mock_price_provider,
+        ), patch(
+            "apps.api.snapshot_service.AKShareFXProvider",
+            return_value=mock_fx_provider,
+        ):
+            svc = SnapshotService(data_dir=self.data_dir)
+            payload = {
+                "coverage_start": "2026-01-05",
+                "week_end": "2026-01-09",
+                "assets": [{"code": "000300", "market": "cn", "asset_type": "stock"}],
+                "required_fx_pairs": ["USD/CNY"],
+            }
+            result = svc.create_snapshot_from_providers(payload)
+
+        self.assertIn("snapshot_id", result)
+        self.assertIn("coverage", result)
+
+
 if __name__ == "__main__":
     unittest.main()

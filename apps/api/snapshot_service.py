@@ -7,10 +7,18 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from portfolio_lab.data_adapters import LocalCSVFXProvider, LocalCSVPriceProvider, RoutedMarketDataAdapter
+from portfolio_lab.data_adapters import (
+    AKShareFXProvider,
+    AKSharePriceProvider,
+    LocalCSVFXProvider,
+    LocalCSVPriceProvider,
+    RoutedMarketDataAdapter,
+)
 from portfolio_lab.errors import SnapshotError, ValidationError
 from portfolio_lab.models import AssetDefinition, AssetType, CalendarType
 from portfolio_lab.universe import UniverseStore
+
+from .asset_router import resolve_asset_meta
 
 ASSET_CATALOG: dict[str, dict[str, Any]] = {
     "CSI300": {
@@ -49,6 +57,13 @@ DEFAULT_PROVIDER_FILES = {
     "fx_rates": "data/providers/fx_rates.csv",
 }
 
+_CALENDAR_MAP = {
+    "a_share": CalendarType.A_SHARE,
+    "us_equity": CalendarType.US_EQUITY,
+    "hk_equity": CalendarType.HK_EQUITY,
+    "crypto_7d": CalendarType.CRYPTO_7D,
+}
+
 
 class SnapshotService:
     def __init__(self, data_dir: str | Path = "data") -> None:
@@ -82,7 +97,7 @@ class SnapshotService:
             raise ValidationError(f"provider file not found: {path}")
         return path
 
-    def _build_store(self, selected_assets: list[str]) -> UniverseStore:
+    def _build_store_from_catalog(self, selected_assets: list[str]) -> UniverseStore:
         store = UniverseStore(self.data_dir)
         for asset_id in selected_assets:
             config = ASSET_CATALOG.get(asset_id)
@@ -91,13 +106,80 @@ class SnapshotService:
             store.register_asset(AssetDefinition(**deepcopy(config)))
         return store
 
+    def _build_store_from_assets(self, assets_raw: list[dict]) -> tuple[UniverseStore, dict[str, str]]:
+        """Build UniverseStore and asset_market_map from assets field."""
+        store = UniverseStore(self.data_dir)
+        asset_market_map: dict[str, str] = {}
+        for a in assets_raw:
+            meta = resolve_asset_meta(str(a["code"]), str(a["market"]))
+            calendar = _CALENDAR_MAP.get(meta["calendar"])
+            if calendar is None:
+                raise ValidationError(f"unknown calendar: {meta['calendar']}")
+            asset_def = AssetDefinition(
+                identifier=meta["identifier"],
+                asset_type=AssetType(meta["asset_type"]),
+                market=meta["market"],
+                calendar=calendar,
+                quote_currency=meta["quote_currency"],
+            )
+            store.register_asset(asset_def)
+            asset_market_map[meta["identifier"]] = meta["market"]
+        return store, asset_market_map
+
+    def _create_snapshot_akshare(
+        self,
+        coverage_start: date,
+        week_end: date,
+        assets_raw: list[dict],
+        required_fx_pairs: list[str],
+    ) -> dict[str, Any]:
+        store, asset_market_map = self._build_store_from_assets(assets_raw)
+        providers_by_market = {
+            "CN": AKSharePriceProvider(market="cn"),
+            "US": AKSharePriceProvider(market="us"),
+            "HK": AKSharePriceProvider(market="hk"),
+            "CRYPTO": AKSharePriceProvider(market="crypto"),
+        }
+        fx_provider = AKShareFXProvider()
+        adapter = RoutedMarketDataAdapter(
+            providers_by_market=providers_by_market,
+            fx_provider=fx_provider,
+            asset_market_map=asset_market_map,
+        )
+        selected_assets = list(asset_market_map.keys())
+        store.ingest_from_adapter(adapter, coverage_start, week_end, selected_assets, required_fx_pairs)
+        snapshot_id = store.publish_weekly_snapshot(
+            week_end=week_end,
+            selected_assets=selected_assets,
+            required_fx_pairs=required_fx_pairs,
+            coverage_start=coverage_start,
+        )
+        snapshot = store.load_snapshot(snapshot_id)
+        return {
+            "snapshot_id": snapshot_id,
+            "coverage": snapshot["coverage"],
+            "traceability": snapshot["traceability"],
+            "integrity": snapshot["integrity"],
+        }
+
     def create_snapshot_from_providers(self, payload: dict[str, Any]) -> dict[str, Any]:
         coverage_start = self._to_date(payload.get("coverage_start"), "coverage_start")
         week_end = self._to_date(payload.get("week_end"), "week_end")
-        selected_assets = self._to_upper_list(payload.get("selected_assets"), "selected_assets")
-        required_fx_pairs = self._to_upper_list(payload.get("required_fx_pairs"), "required_fx_pairs")
         if coverage_start > week_end:
             raise ValidationError("coverage_start must be <= week_end")
+
+        required_fx_raw = payload.get("required_fx_pairs")
+        required_fx_pairs = self._to_upper_list(required_fx_raw, "required_fx_pairs")
+
+        assets_raw = payload.get("assets")
+        if assets_raw:
+            # AKShare path: dynamic asset metadata from the assets field
+            return self._create_snapshot_akshare(
+                coverage_start, week_end, assets_raw, required_fx_pairs
+            )
+
+        # Backward-compatible CSV path
+        selected_assets = self._to_upper_list(payload.get("selected_assets"), "selected_assets")
 
         provider_files = payload.get("provider_files", {}) or {}
         if not isinstance(provider_files, dict):
@@ -137,7 +219,7 @@ class SnapshotService:
             asset_symbol_map=symbol_map,
         )
 
-        store = self._build_store(selected_assets)
+        store = self._build_store_from_catalog(selected_assets)
         store.ingest_from_adapter(adapter, coverage_start, week_end, selected_assets, required_fx_pairs)
         snapshot_id = store.publish_weekly_snapshot(
             week_end=week_end,
