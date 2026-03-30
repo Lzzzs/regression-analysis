@@ -19,6 +19,8 @@ try:
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
 
+    from .asset_router import router as asset_router
+
     app = FastAPI(title="Portfolio Lab API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
@@ -30,6 +32,7 @@ try:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.include_router(asset_router)
 
     @app.get("/health")
     def health() -> dict:
