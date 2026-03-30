@@ -14,7 +14,7 @@ from portfolio_lab.data_adapters import (
     LocalCSVPriceProvider,
     RoutedMarketDataAdapter,
 )
-from portfolio_lab.errors import SnapshotError, ValidationError
+from portfolio_lab.errors import ValidationError
 from portfolio_lab.models import AssetDefinition, AssetType, CalendarType
 from portfolio_lab.universe import UniverseStore
 
@@ -111,7 +111,10 @@ class SnapshotService:
         store = UniverseStore(self.data_dir)
         asset_market_map: dict[str, str] = {}
         for a in assets_raw:
-            meta = resolve_asset_meta(str(a["code"]), str(a["market"]))
+            try:
+                meta = resolve_asset_meta(str(a["code"]), str(a["market"]))
+            except KeyError as exc:
+                raise ValidationError(f"asset entry missing required field: {exc}") from exc
             calendar = _CALENDAR_MAP.get(meta["calendar"])
             if calendar is None:
                 raise ValidationError(f"unknown calendar: {meta['calendar']}")
@@ -172,6 +175,8 @@ class SnapshotService:
         required_fx_pairs = self._to_upper_list(required_fx_raw, "required_fx_pairs")
 
         assets_raw = payload.get("assets")
+        if assets_raw is not None and not isinstance(assets_raw, list):
+            raise ValidationError("assets must be a list")
         if assets_raw:
             # AKShare path: dynamic asset metadata from the assets field
             return self._create_snapshot_akshare(
