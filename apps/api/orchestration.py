@@ -8,6 +8,7 @@ from typing import Any
 from apps.shared.contracts import ContractError, JobCreateRequest
 from portfolio_lab.errors import SnapshotError, ValidationError
 
+from .asset_router import resolve_asset_meta
 from .snapshot_service import ASSET_CATALOG, SnapshotService
 from .service import JobService
 
@@ -21,12 +22,24 @@ class AutoJobOrchestrator:
 
     @staticmethod
     def _infer_fx_pairs(selected_assets: list[str], base_currency: str) -> list[str]:
+        """Infer FX pairs from ASSET_CATALOG (backward-compat CSV path)."""
         pairs: set[str] = set()
         for asset_id in selected_assets:
             catalog = ASSET_CATALOG.get(asset_id)
             if not catalog:
                 continue
             quote = str(catalog["quote_currency"]).upper()
+            if quote != base_currency:
+                pairs.add(f"{quote}/{base_currency}")
+        return sorted(pairs)
+
+    @staticmethod
+    def _infer_fx_pairs_from_assets(assets: list[dict], base_currency: str) -> list[str]:
+        """Infer FX pairs from assets metadata (AKShare path)."""
+        pairs: set[str] = set()
+        for a in assets:
+            meta = resolve_asset_meta(str(a["code"]), str(a["market"]))
+            quote = meta["quote_currency"].upper()
             if quote != base_currency:
                 pairs.add(f"{quote}/{base_currency}")
         return sorted(pairs)
@@ -63,15 +76,20 @@ class AutoJobOrchestrator:
         if missing_weight_assets:
             raise ContractError(f"selected_assets must include all weight keys: {missing_weight_assets}")
 
+        assets_raw = payload.get("assets")  # list[{code, market, asset_type}] | None
         required_fx_raw = payload.get("required_fx_pairs")
+
         if required_fx_raw is None:
-            required_fx_pairs = self._infer_fx_pairs(selected_assets, request.base_currency)
+            if assets_raw:
+                required_fx_pairs = self._infer_fx_pairs_from_assets(assets_raw, request.base_currency)
+            else:
+                required_fx_pairs = self._infer_fx_pairs(selected_assets, request.base_currency)
         elif isinstance(required_fx_raw, list):
             required_fx_pairs = sorted({str(item).upper() for item in required_fx_raw})
         else:
             raise ContractError("required_fx_pairs must be a list when provided")
 
-        snapshot_payload = {
+        snapshot_payload: dict[str, Any] = {
             "coverage_start": request.start_date,
             "week_end": request.end_date,
             "selected_assets": selected_assets,
@@ -79,6 +97,9 @@ class AutoJobOrchestrator:
             "provider_files": payload.get("provider_files", {}) or {},
             "asset_symbol_map": payload.get("asset_symbol_map", {}) or {},
         }
+        if assets_raw:
+            snapshot_payload["assets"] = assets_raw
+
         snapshot = self.snapshot_service.create_snapshot_from_providers(snapshot_payload)
 
         job_payload = {

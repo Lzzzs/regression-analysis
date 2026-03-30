@@ -315,5 +315,43 @@ class WebApiWorkerIntegrationTests(unittest.TestCase):
         self.assertEqual(status["status"], "completed")
 
 
+    def test_create_job_auto_with_assets_field(self):
+        """assets field is forwarded to snapshot payload and FX pairs inferred from metadata."""
+        from unittest.mock import MagicMock
+        from apps.api.orchestration import AutoJobOrchestrator
+
+        mock_snapshot_svc = MagicMock()
+        mock_snapshot_svc.create_snapshot_from_providers.return_value = {
+            "snapshot_id": "snap-001",
+            "coverage": {},
+            "traceability": {},
+            "integrity": {},
+        }
+        mock_job_svc = MagicMock()
+        mock_job_svc.create_job.return_value = {"job_id": "job-001", "status": "pending"}
+
+        orchestrator = AutoJobOrchestrator(mock_job_svc, mock_snapshot_svc)
+        payload = {
+            "start_date": "2026-01-05",
+            "end_date": "2026-01-09",
+            "rebalance_frequency": "monthly",
+            "base_currency": "CNY",
+            "weights": {"000300": 0.6, "SPY": 0.4},
+            "assets": [
+                {"code": "000300", "market": "cn", "asset_type": "stock"},
+                {"code": "SPY", "market": "us", "asset_type": "stock"},
+            ],
+        }
+        result = orchestrator.create_job_auto(payload)
+
+        self.assertEqual(result["job_id"], "job-001")
+        call_args = mock_snapshot_svc.create_snapshot_from_providers.call_args[0][0]
+        # assets field must be forwarded
+        self.assertIn("assets", call_args)
+        self.assertEqual(len(call_args["assets"]), 2)
+        # FX pairs inferred from assets metadata: SPY is USD → USD/CNY needed
+        self.assertIn("USD/CNY", call_args["required_fx_pairs"])
+
+
 if __name__ == "__main__":
     unittest.main()
