@@ -250,3 +250,101 @@ class RoutedMarketDataAdapter:
             for row in fetched:
                 rows.append(self._normalize_fx_row(pair, row, default_source=self.fx_provider.name))
         return rows
+
+
+try:
+    import akshare as ak
+except ImportError:  # allow import without akshare installed (e.g. offline test envs)
+    ak = None  # type: ignore[assignment]
+
+
+class AKSharePriceProvider:
+    """AKShare-backed price provider. One instance per market."""
+
+    name = "akshare"
+
+    def __init__(self, market: str) -> None:
+        """market: 'cn' | 'us' | 'hk' | 'crypto' (case-insensitive)"""
+        self.market = market.lower()
+
+    @staticmethod
+    def _fmt_date(d: date) -> str:
+        return d.strftime("%Y%m%d")
+
+    @staticmethod
+    def _is_etf(symbol: str) -> bool:
+        s = symbol.upper()
+        return s.startswith("5") or s.startswith("159")
+
+    def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
+        if ak is None:
+            raise ImportError("akshare is not installed")
+        start = self._fmt_date(start_date)
+        end = self._fmt_date(end_date)
+        if self.market == "cn":
+            if self._is_etf(symbol):
+                df = ak.fund_etf_hist_em(
+                    symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+                )
+            else:
+                df = ak.stock_zh_a_hist(
+                    symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+                )
+        elif self.market == "us":
+            df = ak.stock_us_hist(
+                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+            )
+        elif self.market == "hk":
+            df = ak.stock_hk_hist(
+                symbol=symbol, period="daily", start_date=start, end_date=end, adjust="qfq"
+            )
+        elif self.market == "crypto":
+            crypto_symbol = symbol.upper()
+            if not crypto_symbol.endswith("USDT"):
+                crypto_symbol = crypto_symbol + "USDT"
+            df = ak.crypto_hist(symbol=crypto_symbol, period="daily", start_date=start, end_date=end)
+        else:
+            raise ValidationError(f"unsupported market for AKSharePriceProvider: {self.market}")
+
+        rows: list[dict] = []
+        for _, row in df.iterrows():
+            rows.append({
+                "day": date.fromisoformat(str(row["日期"])),
+                "close": float(row["收盘"]),
+                "source": "akshare",
+            })
+        return rows
+
+
+class AKShareFXProvider:
+    """AKShare-backed FX provider."""
+
+    name = "akshare"
+
+    _PAIR_TO_SYMBOL = {
+        "USD/CNY": "USDCNY",
+        "HKD/CNY": "HKDCNY",
+    }
+
+    @staticmethod
+    def _fmt_date(d: date) -> str:
+        return d.strftime("%Y%m%d")
+
+    def fetch_fx_rows(self, start_date: date, end_date: date, pair: str) -> list[dict]:
+        if ak is None:
+            raise ImportError("akshare is not installed")
+        normalized = pair.upper()
+        symbol = self._PAIR_TO_SYMBOL.get(normalized)
+        if not symbol:
+            raise ValidationError(f"unsupported FX pair for AKShareFXProvider: {pair}")
+        start = self._fmt_date(start_date)
+        end = self._fmt_date(end_date)
+        df = ak.currency_hist(symbol=symbol, period="daily", start_date=start, end_date=end)
+        rows: list[dict] = []
+        for _, row in df.iterrows():
+            rows.append({
+                "day": date.fromisoformat(str(row["日期"])),
+                "rate": float(row["收盘"]),
+                "source": "akshare",
+            })
+        return rows
