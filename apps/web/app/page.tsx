@@ -54,7 +54,13 @@ export default function Page() {
       setJobId(data.job_id);
       setSnapshotId(data.snapshot_id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const raw = err instanceof Error ? err.message : String(err);
+      try {
+        const parsed = JSON.parse(raw);
+        setError(parsed.detail || raw);
+      } catch {
+        setError(raw);
+      }
     } finally {
       setLoading(false);
     }

@@ -66,10 +66,19 @@ export default function AssetPicker({ value, onChange }: Props) {
 
   function toggleAsset(item: AssetItem) {
     if (selectedCodes.has(item.code)) {
-      onChange(value.filter((a) => a.code !== item.code));
+      const next = value.filter((a) => a.code !== item.code);
+      onChange(autoDistribute(next));
     } else {
-      onChange([...value, { ...item, weight: 0 }]);
+      const next = [...value, { ...item, weight: 0 }];
+      onChange(autoDistribute(next));
     }
+  }
+
+  function autoDistribute(assets: SelectedAsset[]): SelectedAsset[] {
+    if (assets.length === 0) return assets;
+    const base = Math.floor(100 / assets.length);
+    const remainder = 100 - base * assets.length;
+    return assets.map((a, i) => ({ ...a, weight: i === 0 ? base + remainder : base }));
   }
 
   function updateWeight(code: string, delta: number) {
@@ -156,7 +165,7 @@ export default function AssetPicker({ value, onChange }: Props) {
           </div>
 
           {/* Results list */}
-          <div className="flex-1 overflow-y-auto max-h-64 md:max-h-none">
+          <div className="flex-1 overflow-y-auto max-h-64 md:max-h-[400px]">
             {searching && (
               <p className="px-4 py-3 text-xs text-gray-400">搜索中…</p>
             )}
