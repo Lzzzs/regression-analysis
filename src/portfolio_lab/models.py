@@ -23,6 +23,7 @@ class AssetType(str, Enum):
 class CalendarType(str, Enum):
     A_SHARE = "a_share"
     US_EQUITY = "us_equity"
+    HK_EQUITY = "hk_equity"
     CRYPTO_7D = "crypto_7d"
 
 
