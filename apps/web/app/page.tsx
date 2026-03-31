@@ -7,12 +7,9 @@ import AssetPicker, { SelectedAsset } from './components/AssetPicker';
 import { createJobAuto } from '../lib/api';
 import { toChineseValue } from '../lib/field_localizer';
 
-function lastFriday(from?: Date): string {
-  const d = from ? new Date(from) : new Date();
+function todayStr(): string {
+  const d = new Date();
   d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); // 0=Sun..6=Sat
-  const diff = day >= 5 ? day - 5 : day + 2; // days since last Friday
-  d.setDate(d.getDate() - (diff === 0 ? 7 : diff)); // if today is Fri, use last Fri
   return d.toISOString().slice(0, 10);
 }
 
@@ -26,7 +23,7 @@ function dateOffset(base: string, years: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-const DEFAULT_END = lastFriday();
+const DEFAULT_END = todayStr();
 const DEFAULT_START = dateOffset(DEFAULT_END, 1);
 
 export default function Page() {
@@ -60,10 +57,6 @@ export default function Page() {
     const end = new Date(endDate);
     if (startDate >= endDate) {
       setError('开始日期必须早于结束日期');
-      return;
-    }
-    if (end.getUTCDay() !== 5) {
-      setError('结束日期必须为周五（快照发布要求）');
       return;
     }
     const today = new Date();
@@ -198,7 +191,7 @@ export default function Page() {
                   <option value="monthly">{toChineseValue('monthly')}</option>
                   <option value="quarterly">{toChineseValue('quarterly')}</option>
                 </select>
-                <p className="text-xs text-gray-400 mt-1">结束日期需为周五</p>
+                <p className="text-xs text-gray-400 mt-1">结束日期将自动对齐到周五</p>
               </div>
             </div>
           </div>

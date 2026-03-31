@@ -124,20 +124,35 @@ class BacktestEngine:
         price_series: dict,
         day: date,
     ) -> tuple[float, bool, bool]:
-        """Return (price, is_stale, market_closed)."""
+        """Return (price, is_stale, market_closed).
+
+        On a trading day with no price, look back up to 10 days for the most
+        recent known price and mark it stale.  The 10-day window covers long
+        holidays (Chinese New Year, National Day).  Raise only when no price
+        exists within the lookback window.
+        """
         day_key = day.isoformat()
         if day_key in price_series:
             return float(price_series[day_key]["close"]), False, False
 
         trading_day = is_trading_day(day, CalendarType(asset["calendar"]))
+
+        # Look backward for the most recent price
+        previous_days = sorted(d for d in price_series.keys() if d < day_key)
+        if previous_days:
+            last_day = previous_days[-1]
+            gap = (day - date.fromisoformat(last_day)).days
+            if trading_day and gap > 10:
+                raise MissingDataError(
+                    f"missing price on expected trading day (no data within 10-day lookback): "
+                    f"{asset['identifier']} {day_key}"
+                )
+            return float(price_series[last_day]["close"]), True, not trading_day
+
         if trading_day:
             raise MissingDataError(f"missing price on expected trading day: {asset['identifier']} {day_key}")
 
-        previous_days = sorted(d for d in price_series.keys() if d < day_key)
-        if not previous_days:
-            raise MissingDataError(f"no historical close for stale valuation: {asset['identifier']} {day_key}")
-
-        return float(price_series[previous_days[-1]]["close"]), True, True
+        raise MissingDataError(f"no historical close for stale valuation: {asset['identifier']} {day_key}")
 
     def run(self, portfolio_spec: PortfolioSpec, backtest_spec: BacktestSpec) -> SingleRunResult:
         if not backtest_spec.snapshot_id:

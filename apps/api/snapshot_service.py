@@ -10,6 +10,7 @@ from typing import Any
 from portfolio_lab.data_adapters import (
     AKShareFXProvider,
     AKSharePriceProvider,
+    BinancePriceProvider,
     LocalCSVFXProvider,
     LocalCSVPriceProvider,
     RoutedMarketDataAdapter,
@@ -141,7 +142,7 @@ class SnapshotService:
             "CN": AKSharePriceProvider(market="cn"),
             "US": AKSharePriceProvider(market="us"),
             "HK": AKSharePriceProvider(market="hk"),
-            "CRYPTO": AKSharePriceProvider(market="crypto"),
+            "CRYPTO": BinancePriceProvider(),
         }
         fx_provider = AKShareFXProvider()
         adapter = RoutedMarketDataAdapter(

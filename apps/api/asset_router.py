@@ -36,6 +36,29 @@ _CRYPTO_ITEMS = [
     {"code": "XRP", "name": "XRP", "market": "crypto", "asset_type": "crypto"},
 ]
 
+_FALLBACK_CN_ITEMS: list[dict] = [
+    {"code": "000001", "name": "平安银行", "market": "cn", "asset_type": "stock"},
+    {"code": "000002", "name": "万科A", "market": "cn", "asset_type": "stock"},
+    {"code": "000300", "name": "沪深300", "market": "cn", "asset_type": "index"},
+    {"code": "600519", "name": "贵州茅台", "market": "cn", "asset_type": "stock"},
+    {"code": "601318", "name": "中国平安", "market": "cn", "asset_type": "stock"},
+    {"code": "600036", "name": "招商银行", "market": "cn", "asset_type": "stock"},
+    {"code": "000858", "name": "五粮液", "market": "cn", "asset_type": "stock"},
+    {"code": "601012", "name": "隆基绿能", "market": "cn", "asset_type": "stock"},
+    {"code": "600900", "name": "长江电力", "market": "cn", "asset_type": "stock"},
+    {"code": "601888", "name": "中国中免", "market": "cn", "asset_type": "stock"},
+    {"code": "510300", "name": "沪深300ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "510500", "name": "中证500ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "510050", "name": "上证50ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "159919", "name": "沪深300ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "159915", "name": "创业板ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "513100", "name": "纳指ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "518880", "name": "黄金ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "511010", "name": "国债ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "513050", "name": "中概互联ETF", "market": "cn", "asset_type": "etf"},
+    {"code": "512690", "name": "酒ETF", "market": "cn", "asset_type": "etf"},
+]
+
 
 def resolve_asset_meta(code: str, market: str) -> dict:
     """Return asset metadata inferred from code and market.
@@ -102,29 +125,32 @@ def _col(df: Any, *candidates: str) -> str:
 
 def _fetch_cn_items() -> list[dict]:
     if ak is None:
-        return []
-    stocks_df = ak.stock_info_a_code_name()
-    code_col = _col(stocks_df, "code", "代码")
-    name_col = _col(stocks_df, "name", "名称")
-    items: list[dict] = []
-    for _, row in stocks_df.iterrows():
-        code = str(row[code_col]).strip()
-        # Shanghai ETFs: 51xxxx; Shenzhen ETFs: 159xxx
-        asset_type = "etf" if (code.startswith("5") or code.startswith("159")) else "stock"
-        items.append({"code": code, "name": str(row[name_col]).strip(), "market": "cn", "asset_type": asset_type})
-    # Try to supplement with dedicated ETF list (may fail due to network)
+        return list(_FALLBACK_CN_ITEMS)
     try:
-        etf_df = ak.fund_etf_spot_em()
-        etf_code_col = _col(etf_df, "代码", "code")
-        etf_name_col = _col(etf_df, "名称", "name")
-        existing_codes = {item["code"] for item in items}
-        for _, row in etf_df.iterrows():
-            code = str(row[etf_code_col]).strip()
-            if code not in existing_codes:
-                items.append({"code": code, "name": str(row[etf_name_col]).strip(), "market": "cn", "asset_type": "etf"})
+        stocks_df = ak.stock_info_a_code_name()
+        code_col = _col(stocks_df, "code", "代码")
+        name_col = _col(stocks_df, "name", "名称")
+        items: list[dict] = []
+        for _, row in stocks_df.iterrows():
+            code = str(row[code_col]).strip()
+            # Shanghai ETFs: 51xxxx; Shenzhen ETFs: 159xxx
+            asset_type = "etf" if (code.startswith("5") or code.startswith("159")) else "stock"
+            items.append({"code": code, "name": str(row[name_col]).strip(), "market": "cn", "asset_type": asset_type})
+        # Try to supplement with dedicated ETF list (may fail due to network)
+        try:
+            etf_df = ak.fund_etf_spot_em()
+            etf_code_col = _col(etf_df, "代码", "code")
+            etf_name_col = _col(etf_df, "名称", "name")
+            existing_codes = {item["code"] for item in items}
+            for _, row in etf_df.iterrows():
+                code = str(row[etf_code_col]).strip()
+                if code not in existing_codes:
+                    items.append({"code": code, "name": str(row[etf_name_col]).strip(), "market": "cn", "asset_type": "etf"})
+        except Exception:
+            pass  # ETF supplement failed, stock list still available
+        return items
     except Exception:
-        pass  # ETF supplement failed, stock list still available
-    return items
+        return list(_FALLBACK_CN_ITEMS)
 
 
 def _fetch_us_items() -> list[dict]:

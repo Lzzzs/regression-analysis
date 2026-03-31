@@ -106,34 +106,12 @@ class TestAKSharePriceProviderHK(unittest.TestCase):
 
 
 class TestAKSharePriceProviderCrypto(unittest.TestCase):
-    def test_fetches_crypto_rows_appends_usdt(self):
-        mock_df = pd.DataFrame({"日期": ["2026-01-05"], "收盘": [95000.0]})
-        with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.crypto_hist.return_value = mock_df
-            provider = AKSharePriceProvider(market="crypto")
-            rows = provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "BTC")
-
-        self.assertEqual(len(rows), 1)
-        # BTC → BTCUSDT
-        mock_ak.crypto_hist.assert_called_once_with(
-            symbol="BTCUSDT",
-            period="daily",
-            start_date="20260105",
-            end_date="20260109",
-        )
-
-    def test_does_not_double_append_usdt(self):
-        mock_df = pd.DataFrame({"日期": ["2026-01-05"], "收盘": [95000.0]})
-        with patch("portfolio_lab.data_adapters.ak") as mock_ak:
-            mock_ak.crypto_hist.return_value = mock_df
-            provider = AKSharePriceProvider(market="crypto")
-            provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "BTCUSDT")
-        mock_ak.crypto_hist.assert_called_once_with(
-            symbol="BTCUSDT",
-            period="daily",
-            start_date="20260105",
-            end_date="20260109",
-        )
+    def test_crypto_raises_validation_error(self):
+        """Crypto market should no longer use AKSharePriceProvider — it raises ValidationError."""
+        from portfolio_lab.errors import ValidationError
+        provider = AKSharePriceProvider(market="crypto")
+        with self.assertRaises(ValidationError):
+            provider.fetch_price_rows(date(2026, 1, 5), date(2026, 1, 9), "BTC")
 
 
 class TestAKShareFXProvider(unittest.TestCase):

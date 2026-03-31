@@ -366,12 +366,38 @@ class PortfolioLabTests(unittest.TestCase):
             with self.assertRaises(NetworkAccessError):
                 socket.create_connection(("example.com", 80), timeout=0.1)
 
-    def test_backtest_fail_fast_on_missing_expected_trading_day_price(self) -> None:
+    def test_backtest_tolerates_minor_price_gap(self) -> None:
+        """A single missing trading day within the 5-day lookback is tolerated."""
         self._register_default_assets()
         snapshot_id = self._publish_default_snapshot()
         snapshot_file = self.data_dir / "snapshots" / f"{snapshot_id}.json"
         payload = json.loads(snapshot_file.read_text(encoding="utf-8"))
         del payload["prices"]["SPY"]["2026-01-07"]
+        payload["integrity"]["checksum_sha256"] = snapshot_checksum(payload)
+        snapshot_file.write_text(json.dumps(payload), encoding="utf-8")
+
+        engine = BacktestEngine(self.data_dir)
+        # Should NOT raise — the lookback finds a price within 5 days
+        result = engine.run(
+            PortfolioSpec(weights={"SPY": 0.5, "CSI300": 0.5}, base_currency="CNY"),
+            BacktestSpec(
+                snapshot_id=snapshot_id,
+                start_date=date(2026, 1, 5),
+                end_date=date(2026, 1, 9),
+                rebalance_frequency=RebalanceFrequency.MONTHLY,
+                base_currency="CNY",
+            ),
+        )
+        self.assertIsNotNone(result)
+
+    def test_backtest_fail_fast_on_missing_price_beyond_lookback(self) -> None:
+        """When all prices except a distant one are removed, the 5-day lookback fails."""
+        self._register_default_assets()
+        snapshot_id = self._publish_default_snapshot()
+        snapshot_file = self.data_dir / "snapshots" / f"{snapshot_id}.json"
+        payload = json.loads(snapshot_file.read_text(encoding="utf-8"))
+        # Remove all SPY prices so no lookback is possible for any trading day
+        payload["prices"]["SPY"] = {}
         payload["integrity"]["checksum_sha256"] = snapshot_checksum(payload)
         snapshot_file.write_text(json.dumps(payload), encoding="utf-8")
 

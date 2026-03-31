@@ -6,9 +6,14 @@ import contextlib
 import csv
 import json
 import os
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Protocol
+
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None  # type: ignore[assignment]
 
 from .errors import ValidationError
 
@@ -254,6 +259,58 @@ class RoutedMarketDataAdapter:
         return rows
 
 
+class BinancePriceProvider:
+    """Fetch crypto daily prices from Binance public API, CSV fallback."""
+
+    name = "binance"
+
+    _BINANCE_KLINES_URL = "https://api.binance.com/api/v3/klines"
+    _CSV_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "providers" / "crypto_prices.csv"
+
+    def _to_binance_symbol(self, symbol: str) -> str:
+        s = symbol.upper()
+        if not s.endswith("USDT"):
+            s = s + "USDT"
+        return s
+
+    def _fallback_csv(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
+        csv_provider = LocalCSVPriceProvider(self._CSV_PATH, name="crypto-csv")
+        binance_symbol = self._to_binance_symbol(symbol)
+        return csv_provider.fetch_price_rows(start_date, end_date, binance_symbol)
+
+    def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
+        if _requests is None:
+            return self._fallback_csv(start_date, end_date, symbol)
+
+        binance_symbol = self._to_binance_symbol(symbol)
+        start_ms = int(datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1000)
+        end_ms = int(datetime.combine(end_date, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp() * 1000) + 86400000 - 1
+
+        all_rows: list[dict] = []
+        cursor = start_ms
+        try:
+            while cursor <= end_ms:
+                resp = _requests.get(
+                    self._BINANCE_KLINES_URL,
+                    params={"symbol": binance_symbol, "interval": "1d", "startTime": cursor, "endTime": end_ms, "limit": 1000},
+                    timeout=15,
+                )
+                if resp.status_code != 200:
+                    return self._fallback_csv(start_date, end_date, symbol)
+                klines = resp.json()
+                if not klines:
+                    break
+                for k in klines:
+                    day = date.fromtimestamp(k[0] / 1000)
+                    close = float(k[4])
+                    all_rows.append({"day": day, "close": close, "source": "binance"})
+                cursor = klines[-1][0] + 86400000
+        except Exception:
+            return self._fallback_csv(start_date, end_date, symbol)
+
+        return all_rows if all_rows else self._fallback_csv(start_date, end_date, symbol)
+
+
 try:
     import akshare as ak
 except ImportError:  # allow import without akshare installed (e.g. offline test envs)
@@ -345,11 +402,7 @@ class AKSharePriceProvider:
                 )
                 date_col, close_col = "日期", "收盘"
             elif self.market == "crypto":
-                crypto_symbol = symbol.upper()
-                if not crypto_symbol.endswith("USDT"):
-                    crypto_symbol = crypto_symbol + "USDT"
-                df = ak.crypto_hist(symbol=crypto_symbol, period="daily", start_date=start, end_date=end)
-                date_col, close_col = "日期", "收盘"
+                raise ValidationError("crypto market should use BinancePriceProvider, not AKSharePriceProvider")
             else:
                 raise ValidationError(f"unsupported market for AKSharePriceProvider: {self.market}")
 

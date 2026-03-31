@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from apps.shared.contracts import ContractError, JobCreateRequest
@@ -59,8 +59,11 @@ class AutoJobOrchestrator:
 
         start_date = date.fromisoformat(request.start_date)
         end_date = date.fromisoformat(request.end_date)
-        if end_date.weekday() != 4:
-            raise ContractError("结束日期必须为周五（快照按周发布）")
+        # Auto-align end_date to most recent Friday (on or before)
+        while end_date.weekday() != 4:
+            end_date -= timedelta(days=1)
+        # Update request with aligned date
+        request.end_date = end_date.isoformat()
         if start_date > end_date:
             raise ContractError("开始日期不能晚于结束日期")
 
