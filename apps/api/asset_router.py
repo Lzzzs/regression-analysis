@@ -1,6 +1,7 @@
 """Asset search API router with in-memory 5-minute cache."""
 from __future__ import annotations
 
+import threading
 import time
 from typing import Any
 
@@ -22,7 +23,8 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # In-memory caches — one per market, each entry: {"data": list, "ts": float}
 # ---------------------------------------------------------------------------
-_CACHE_TTL = 300  # 5 minutes
+_CACHE_TTL = 1800  # 30 minutes — akshare calls are slow, cache aggressively
+_REFRESH_LOCK = threading.Lock()
 
 _cn_cache: dict[str, Any] = {"data": None, "ts": 0.0}
 _us_cache: dict[str, Any] = {"data": None, "ts": 0.0}
@@ -216,25 +218,61 @@ def _fetch_hk_items() -> list[dict]:
         return list(_FALLBACK_HK_ITEMS)
 
 
+_FALLBACK_MAP = {
+    "cn": _FALLBACK_CN_ITEMS,
+    "us": _FALLBACK_US_ITEMS,
+    "hk": _FALLBACK_HK_ITEMS,
+}
+
+_CACHE_MAP = {
+    "cn": _cn_cache,
+    "us": _us_cache,
+    "hk": _hk_cache,
+}
+
+_FETCH_MAP = {
+    "cn": _fetch_cn_items,
+    "us": _fetch_us_items,
+    "hk": _fetch_hk_items,
+}
+
+
+def _refresh_cache_background(market: str) -> None:
+    """Refresh cache in a background thread — never blocks the request."""
+    if not _REFRESH_LOCK.acquire(blocking=False):
+        return  # another refresh already in progress
+    try:
+        fetch_fn = _FETCH_MAP.get(market)
+        cache = _CACHE_MAP.get(market)
+        if fetch_fn and cache:
+            data = fetch_fn()
+            if data:
+                cache["data"] = data
+                cache["ts"] = time.time()
+    except Exception:
+        pass
+    finally:
+        _REFRESH_LOCK.release()
+
+
 def _get_cached_items(market: str) -> list[dict]:
-    if market == "cn":
-        if _is_stale(_cn_cache):
-            _cn_cache["data"] = _fetch_cn_items()
-            _cn_cache["ts"] = time.time()
-        return _cn_cache["data"]
-    elif market == "us":
-        if _is_stale(_us_cache):
-            _us_cache["data"] = _fetch_us_items()
-            _us_cache["ts"] = time.time()
-        return _us_cache["data"]
-    elif market == "hk":
-        if _is_stale(_hk_cache):
-            _hk_cache["data"] = _fetch_hk_items()
-            _hk_cache["ts"] = time.time()
-        return _hk_cache["data"]
-    elif market == "crypto":
+    if market == "crypto":
         return _CRYPTO_ITEMS
-    return []
+
+    cache = _CACHE_MAP.get(market)
+    fallback = _FALLBACK_MAP.get(market, [])
+    if cache is None:
+        return list(fallback)
+
+    if cache["data"] is not None:
+        # Have cached data — return it immediately, refresh in background if stale
+        if _is_stale(cache):
+            threading.Thread(target=_refresh_cache_background, args=(market,), daemon=True).start()
+        return cache["data"]
+
+    # No cached data yet — return fallback immediately, trigger background fetch
+    threading.Thread(target=_refresh_cache_background, args=(market,), daemon=True).start()
+    return list(fallback)
 
 
 if _FASTAPI_AVAILABLE:

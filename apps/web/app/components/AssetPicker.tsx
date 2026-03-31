@@ -166,8 +166,23 @@ export default function AssetPicker({ value, onChange }: Props) {
 
           {/* Results list */}
           <div className="flex-1 overflow-y-auto max-h-64 md:max-h-[400px]">
-            {searching && (
-              <p className="px-4 py-3 text-xs text-gray-400">搜索中…</p>
+            {searching && results.length === 0 && (
+              <div className="px-4 py-2 space-y-2.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2 animate-pulse">
+                    <div className="w-4 h-4 rounded border border-gray-200 bg-gray-100 flex-shrink-0" />
+                    <div className="h-3 bg-gray-100 rounded w-14" />
+                    <div className="h-3 bg-gray-50 rounded flex-1" />
+                  </div>
+                ))}
+              </div>
+            )}
+            {searching && results.length > 0 && (
+              <div className="px-3 pb-1">
+                <div className="h-0.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full w-1/3 bg-gray-300 rounded-full animate-pulse" />
+                </div>
+              </div>
             )}
             {!searching && results.length === 0 && (
               <p className="px-4 py-3 text-xs text-gray-400">无结果</p>
