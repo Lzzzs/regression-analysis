@@ -16,22 +16,23 @@ class JobService:
 
     def create_job(self, payload: dict[str, Any]) -> dict[str, Any]:
         request = JobCreateRequest.from_payload(payload)
-        record = self.store.create(
-            {
-                "weights": request.weights,
-                "snapshot_id": request.snapshot_id,
-                "start_date": request.start_date,
-                "end_date": request.end_date,
-                "rebalance_frequency": request.rebalance_frequency,
-                "base_currency": request.base_currency,
-                "max_retries": request.max_retries if request.max_retries is not None else self.store.max_retries,
-            }
-        )
+        job_data: dict[str, Any] = {
+            "weights": request.weights,
+            "snapshot_id": request.snapshot_id,
+            "start_date": request.start_date,
+            "end_date": request.end_date,
+            "rebalance_frequency": request.rebalance_frequency,
+            "base_currency": request.base_currency,
+            "max_retries": request.max_retries if request.max_retries is not None else self.store.max_retries,
+        }
+        if payload.get("assets"):
+            job_data["assets"] = payload["assets"]
+        record = self.store.create(job_data)
         return {"job_id": record.job_id, "status": record.status}
 
     @staticmethod
     def _payload_summary(payload: dict[str, Any]) -> dict[str, Any]:
-        return {
+        summary: dict[str, Any] = {
             "snapshot_id": payload.get("snapshot_id"),
             "start_date": payload.get("start_date"),
             "end_date": payload.get("end_date"),
@@ -39,6 +40,9 @@ class JobService:
             "base_currency": payload.get("base_currency"),
             "weights": payload.get("weights", {}),
         }
+        if payload.get("assets"):
+            summary["assets"] = payload["assets"]
+        return summary
 
     def job_status(self, job_id: str) -> dict[str, Any]:
         item = self.store.get(job_id)
