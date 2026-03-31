@@ -113,6 +113,8 @@ class AutoJobOrchestrator:
             "rebalance_frequency": request.rebalance_frequency,
             "base_currency": request.base_currency,
         }
+        if assets_raw:
+            job_payload["assets"] = assets_raw
         if request.max_retries is not None:
             job_payload["max_retries"] = request.max_retries
         created = self.job_service.create_job(job_payload)
