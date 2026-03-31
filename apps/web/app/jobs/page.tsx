@@ -19,6 +19,12 @@ type JobItem = {
 
 const PAGE_SIZE = 20;
 
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+  } catch { return iso; }
+}
+
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     completed: 'bg-green-50 text-green-700',
@@ -75,10 +81,15 @@ export default function JobsPage() {
           ...(dl.items || []),
           ...(all.items || []).filter((j: JobItem) => !dlIds.has(j.job_id)),
         ];
+        // Sort by created_at descending (newest first)
+        merged.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
         setJobs(merged);
         setTotal(all.total || 0);
       } else {
-        setJobs(all.items || []);
+        const allJobs = all.items || [];
+        // Sort by created_at descending (newest first)
+        allJobs.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
+        setJobs(allJobs);
         setTotal(all.total || 0);
       }
     } catch (err) {
@@ -113,7 +124,7 @@ export default function JobsPage() {
         {/* 死信提示 */}
         {hasDeadLetter && (
           <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700">
-            死信任务已达重试上限，可点"重入队"人工恢复。
+            已终止任务已达重试上限，可点"重入队"人工恢复。
           </div>
         )}
 
@@ -169,7 +180,7 @@ export default function JobsPage() {
                   </td>
                   <td className="px-4 py-3">{statusBadge(j.status)}</td>
                   <td className="px-4 py-3 text-gray-500">{j.retry_count ?? 0}/{j.max_retries ?? 0}</td>
-                  <td className="px-4 py-3 text-gray-500">{j.created_at}</td>
+                  <td className="px-4 py-3 text-gray-500">{formatTime(j.created_at)}</td>
                   <td className="px-4 py-3">
                     {(j.status === 'dead-letter' || j.status === 'failed') ? (
                       <button
@@ -212,7 +223,7 @@ export default function JobsPage() {
                 </Link>
                 {statusBadge(j.status)}
               </div>
-              <div className="text-xs text-gray-400">{j.created_at} · 重试 {j.retry_count ?? 0}/{j.max_retries ?? 0}</div>
+              <div className="text-xs text-gray-400">{formatTime(j.created_at)} · 重试 {j.retry_count ?? 0}/{j.max_retries ?? 0}</div>
               {(j.status === 'dead-letter' || j.status === 'failed') && (
                 <button
                   onClick={() => onRequeue(j.job_id)}

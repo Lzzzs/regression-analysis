@@ -9,6 +9,12 @@ import { getJob, getJobResult } from '../../../lib/api';
 
 type EquityItem = { day?: string; equity?: number };
 
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+  } catch { return iso; }
+}
+
 const CHART_WIDTH = 1100;
 const CHART_HEIGHT = 400;
 const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 56 };
@@ -189,15 +195,22 @@ export default function JobPage({ params }: { params: { id: string } }) {
         {status && status.payload_summary && (
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">组合配置</p>
-            {status.payload_summary.weights && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {Object.entries(status.payload_summary.weights).map(([code, weight]: [string, any]) => (
-                  <span key={code} className="bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs font-mono">
-                    {code} {Math.round(weight * 100)}%
-                  </span>
-                ))}
-              </div>
-            )}
+            {status.payload_summary.weights && (() => {
+              const assetNameMap: Record<string, string> = {};
+              const assets = status.payload_summary?.assets || status.assets || status.selected_assets;
+              if (Array.isArray(assets)) {
+                assets.forEach((a: any) => { if (a.code && a.name) assetNameMap[a.code] = a.name; });
+              }
+              return (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {Object.entries(status.payload_summary.weights).map(([code, weight]: [string, any]) => (
+                    <span key={code} className="bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs font-mono">
+                      {code}{assetNameMap[code] ? ` ${assetNameMap[code]}` : ''} {Math.round(weight * 100)}%
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
             <p className="text-xs text-gray-500">
               {status.payload_summary.start_date} ~ {status.payload_summary.end_date}
               {status.payload_summary.rebalance_frequency && (
@@ -253,7 +266,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
                     <span className="mt-1 w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
                     <div>
                       <span className="text-sm font-semibold text-gray-900">{toChineseValue(event.type || 'event')}</span>
-                      <span className="text-xs text-gray-400 ml-2">@ {event.at || '-'}</span>
+                      <span className="text-xs text-gray-400 ml-2">@ {event.at ? formatTime(event.at) : '-'}</span>
                       {event.error && <p className="text-xs text-red-500 mt-0.5">错误: {event.error}</p>}
                     </div>
                   </div>
