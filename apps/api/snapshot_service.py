@@ -14,6 +14,7 @@ from portfolio_lab.data_adapters import (
     LocalCSVFXProvider,
     LocalCSVPriceProvider,
     RoutedMarketDataAdapter,
+    YFinancePriceProvider,
 )
 from portfolio_lab.errors import ValidationError
 from portfolio_lab.models import AssetDefinition, AssetType, CalendarType
@@ -140,7 +141,7 @@ class SnapshotService:
         store, asset_market_map = self._build_store_from_assets(assets_raw)
         providers_by_market = {
             "CN": AKSharePriceProvider(market="cn"),
-            "US": AKSharePriceProvider(market="us"),
+            "US": YFinancePriceProvider(),
             "HK": AKSharePriceProvider(market="hk"),
             "CRYPTO": BinancePriceProvider(),
         }

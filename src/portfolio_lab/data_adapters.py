@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Protocol
 
 try:
+    import yfinance as _yf
+except ImportError:
+    _yf = None  # type: ignore[assignment]
+
+try:
     import requests as _requests
 except ImportError:
     _requests = None  # type: ignore[assignment]
@@ -326,6 +331,23 @@ def _no_proxy():
         yield
     finally:
         os.environ.update(saved)
+
+
+class YFinancePriceProvider:
+    """Yahoo Finance-backed price provider for US (and HK) stocks."""
+
+    name = "yfinance"
+
+    def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
+        if _yf is None:
+            raise ImportError("yfinance is not installed")
+        ticker = _yf.Ticker(symbol)
+        df = ticker.history(start=start_date.isoformat(), end=(end_date + __import__('datetime').timedelta(days=1)).isoformat())
+        rows: list[dict] = []
+        for idx, row in df.iterrows():
+            day = idx.date() if hasattr(idx, 'date') else date.fromisoformat(str(idx)[:10])
+            rows.append({"day": day, "close": float(row["Close"]), "source": "yfinance"})
+        return rows
 
 
 def _akshare_fmt_date(d: date) -> str:

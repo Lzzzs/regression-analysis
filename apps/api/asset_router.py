@@ -59,6 +59,39 @@ _FALLBACK_CN_ITEMS: list[dict] = [
     {"code": "512690", "name": "酒ETF", "market": "cn", "asset_type": "etf"},
 ]
 
+_FALLBACK_US_ITEMS: list[dict] = [
+    {"code": "AAPL", "name": "Apple", "market": "us", "asset_type": "stock"},
+    {"code": "MSFT", "name": "Microsoft", "market": "us", "asset_type": "stock"},
+    {"code": "GOOGL", "name": "Alphabet", "market": "us", "asset_type": "stock"},
+    {"code": "AMZN", "name": "Amazon", "market": "us", "asset_type": "stock"},
+    {"code": "NVDA", "name": "NVIDIA", "market": "us", "asset_type": "stock"},
+    {"code": "TSLA", "name": "Tesla", "market": "us", "asset_type": "stock"},
+    {"code": "META", "name": "Meta Platforms", "market": "us", "asset_type": "stock"},
+    {"code": "BRK.B", "name": "Berkshire Hathaway B", "market": "us", "asset_type": "stock"},
+    {"code": "JPM", "name": "JPMorgan Chase", "market": "us", "asset_type": "stock"},
+    {"code": "V", "name": "Visa", "market": "us", "asset_type": "stock"},
+    {"code": "SPY", "name": "S&P 500 ETF", "market": "us", "asset_type": "etf"},
+    {"code": "QQQ", "name": "Nasdaq 100 ETF", "market": "us", "asset_type": "etf"},
+    {"code": "IWM", "name": "Russell 2000 ETF", "market": "us", "asset_type": "etf"},
+    {"code": "TLT", "name": "20+ Year Treasury ETF", "market": "us", "asset_type": "etf"},
+    {"code": "GLD", "name": "Gold ETF", "market": "us", "asset_type": "etf"},
+]
+
+_FALLBACK_HK_ITEMS: list[dict] = [
+    {"code": "00700", "name": "腾讯控股", "market": "hk", "asset_type": "stock"},
+    {"code": "09988", "name": "阿里巴巴-W", "market": "hk", "asset_type": "stock"},
+    {"code": "03690", "name": "美团-W", "market": "hk", "asset_type": "stock"},
+    {"code": "09999", "name": "网易-S", "market": "hk", "asset_type": "stock"},
+    {"code": "01810", "name": "小米集团-W", "market": "hk", "asset_type": "stock"},
+    {"code": "09618", "name": "京东集团-SW", "market": "hk", "asset_type": "stock"},
+    {"code": "00941", "name": "中国移动", "market": "hk", "asset_type": "stock"},
+    {"code": "02318", "name": "中国平安", "market": "hk", "asset_type": "stock"},
+    {"code": "00005", "name": "汇丰控股", "market": "hk", "asset_type": "stock"},
+    {"code": "01211", "name": "比亚迪股份", "market": "hk", "asset_type": "stock"},
+    {"code": "02800", "name": "盈富基金", "market": "hk", "asset_type": "etf"},
+    {"code": "03067", "name": "安硕恒生科技ETF", "market": "hk", "asset_type": "etf"},
+]
+
 
 def resolve_asset_meta(code: str, market: str) -> dict:
     """Return asset metadata inferred from code and market.
@@ -155,26 +188,32 @@ def _fetch_cn_items() -> list[dict]:
 
 def _fetch_us_items() -> list[dict]:
     if ak is None:
-        return []
-    df = ak.stock_us_spot_em()
-    code_col = _col(df, "代码", "code")
-    name_col = _col(df, "名称", "name")
-    items: list[dict] = []
-    for _, row in df.iterrows():
-        items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "us", "asset_type": "stock"})
-    return items
+        return list(_FALLBACK_US_ITEMS)
+    try:
+        df = ak.stock_us_spot_em()
+        code_col = _col(df, "代码", "code")
+        name_col = _col(df, "名称", "name")
+        items: list[dict] = []
+        for _, row in df.iterrows():
+            items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "us", "asset_type": "stock"})
+        return items
+    except Exception:
+        return list(_FALLBACK_US_ITEMS)
 
 
 def _fetch_hk_items() -> list[dict]:
     if ak is None:
-        return []
-    df = ak.stock_hk_spot_em()
-    code_col = _col(df, "代码", "code")
-    name_col = _col(df, "名称", "name")
-    items: list[dict] = []
-    for _, row in df.iterrows():
-        items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "hk", "asset_type": "stock"})
-    return items
+        return list(_FALLBACK_HK_ITEMS)
+    try:
+        df = ak.stock_hk_spot_em()
+        code_col = _col(df, "代码", "code")
+        name_col = _col(df, "名称", "name")
+        items: list[dict] = []
+        for _, row in df.iterrows():
+            items.append({"code": str(row[code_col]).strip(), "name": str(row[name_col]).strip(), "market": "hk", "asset_type": "stock"})
+        return items
+    except Exception:
+        return list(_FALLBACK_HK_ITEMS)
 
 
 def _get_cached_items(market: str) -> list[dict]:
