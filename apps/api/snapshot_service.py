@@ -141,8 +141,8 @@ class SnapshotService:
         store, asset_market_map = self._build_store_from_assets(assets_raw)
         providers_by_market = {
             "CN": AKSharePriceProvider(market="cn"),
-            "US": YFinancePriceProvider(),
-            "HK": AKSharePriceProvider(market="hk"),
+            "US": YFinancePriceProvider(market="us"),
+            "HK": YFinancePriceProvider(market="hk"),
             "CRYPTO": BinancePriceProvider(),
         }
         fx_provider = AKShareFXProvider()

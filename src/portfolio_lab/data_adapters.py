@@ -334,14 +334,26 @@ def _no_proxy():
 
 
 class YFinancePriceProvider:
-    """Yahoo Finance-backed price provider for US (and HK) stocks."""
+    """Yahoo Finance-backed price provider for US and HK stocks."""
 
     name = "yfinance"
+
+    def __init__(self, market: str = "us") -> None:
+        self.market = market.lower()
+
+    def _to_yf_symbol(self, symbol: str) -> str:
+        if self.market == "hk":
+            # Our system: "00700" → yfinance: "0700.HK"
+            code = symbol.lstrip("0") or "0"
+            code = code.zfill(4)
+            return f"{code}.HK"
+        return symbol
 
     def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:
         if _yf is None:
             raise ImportError("yfinance is not installed")
-        ticker = _yf.Ticker(symbol)
+        yf_symbol = self._to_yf_symbol(symbol)
+        ticker = _yf.Ticker(yf_symbol)
         df = ticker.history(start=start_date.isoformat(), end=(end_date + __import__('datetime').timedelta(days=1)).isoformat())
         rows: list[dict] = []
         for idx, row in df.iterrows():
