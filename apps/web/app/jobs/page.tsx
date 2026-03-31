@@ -38,7 +38,7 @@ function statusBadge(status: string) {
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -99,8 +99,6 @@ export default function JobsPage() {
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, 3000);
-    return () => clearInterval(timer);
   }, [status, debouncedSearch, page]);
 
   return (
@@ -186,7 +184,16 @@ export default function JobsPage() {
                   </td>
                 </tr>
               ))}
-              {jobs.length === 0 && (
+              {loading && jobs.length === 0 && Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-28" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-16" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-10" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-24" /></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-16" /></td>
+                </tr>
+              ))}
+              {!loading && jobs.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">暂无任务</td>
                 </tr>
@@ -216,7 +223,16 @@ export default function JobsPage() {
               )}
             </div>
           ))}
-          {jobs.length === 0 && (
+          {loading && jobs.length === 0 && Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="h-3 bg-gray-100 rounded w-28" />
+                <div className="h-3 bg-gray-100 rounded w-16" />
+              </div>
+              <div className="h-3 bg-gray-100 rounded w-24 mt-2" />
+            </div>
+          ))}
+          {!loading && jobs.length === 0 && (
             <p className="text-center text-sm text-gray-400 py-8">暂无任务</p>
           )}
         </div>

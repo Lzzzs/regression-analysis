@@ -1,7 +1,6 @@
 'use client';
 
 import { FormEvent, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Shell from './components/Shell';
 import AssetPicker, { SelectedAsset } from './components/AssetPicker';
 import { createJobAuto } from '../lib/api';
@@ -27,7 +26,6 @@ const DEFAULT_END = todayStr();
 const DEFAULT_START = dateOffset(DEFAULT_END, 1);
 
 export default function Page() {
-  const router = useRouter();
   const [startDate, setStartDate] = useState(DEFAULT_START);
   const [endDate, setEndDate] = useState(DEFAULT_END);
   const [frequency, setFrequency] = useState('monthly');
@@ -35,7 +33,6 @@ export default function Page() {
   const [requiredFxPairs, setRequiredFxPairs] = useState('');
   const [providerFiles, setProviderFiles] = useState('{}');
   const [jobId, setJobId] = useState('');
-  const [snapshotId, setSnapshotId] = useState('');
   const [error, setError] = useState('');
   const [advanced, setAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -105,8 +102,6 @@ export default function Page() {
       }
       const data = await createJobAuto(payload);
       setJobId(data.job_id);
-      setSnapshotId(data.snapshot_id);
-      router.push(`/jobs/${data.job_id}`);
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       try {
@@ -246,18 +241,16 @@ export default function Page() {
           </button>
 
           {/* 结果反馈 */}
-          {snapshotId && (
-            <p className="text-sm text-gray-500">
-              快照 ID：<span className="font-mono text-gray-900">{snapshotId}</span>
-            </p>
-          )}
           {jobId && (
-            <p className="text-sm text-gray-500">
-              已创建任务：{' '}
-              <a href={`/jobs/${jobId}`} className="font-mono text-blue-600 hover:underline">
-                {jobId}
-              </a>
-            </p>
+            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 space-y-1">
+              <p className="text-sm font-semibold text-green-800">任务已创建，正在后台分析</p>
+              <p className="text-sm text-green-700">
+                任务 ID：
+                <a href={`/jobs/${jobId}`} className="font-mono text-green-900 underline hover:text-green-700">
+                  {jobId}
+                </a>
+              </p>
+            </div>
           )}
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">

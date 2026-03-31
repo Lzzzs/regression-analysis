@@ -48,7 +48,6 @@ try:
     def create_job_auto(payload: dict) -> dict:
         try:
             result = auto_job_orchestrator.create_job_auto(payload)
-            inline_worker.process_job(result["job_id"])
             return result
         except Exception as exc:
             raise HTTPException(status_code=400, detail=str(map_auto_job_error(exc)))

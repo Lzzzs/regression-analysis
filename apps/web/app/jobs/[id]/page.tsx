@@ -9,7 +9,7 @@ import { getJob, getJobResult } from '../../../lib/api';
 
 type EquityItem = { day?: string; equity?: number };
 
-const CHART_WIDTH = 860;
+const CHART_WIDTH = 1100;
 const CHART_HEIGHT = 400;
 const CHART_PADDING = { top: 16, right: 16, bottom: 28, left: 56 };
 
@@ -166,7 +166,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
 
   return (
     <Shell>
-      <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
+      <div className="px-4 py-6 md:px-8 md:py-8 max-w-6xl">
         {/* 面包屑 */}
         <Link href="/jobs" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">← 任务列表</Link>
 
@@ -183,6 +183,28 @@ export default function JobPage({ params }: { params: { id: string } }) {
 
         {!status && !error && (
           <p className="text-sm text-gray-400">加载中...</p>
+        )}
+
+        {/* 组合配置 */}
+        {status && status.payload_summary && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4 mb-6">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">组合配置</p>
+            {status.payload_summary.weights && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {Object.entries(status.payload_summary.weights).map(([code, weight]: [string, any]) => (
+                  <span key={code} className="bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs font-mono">
+                    {code} {Math.round(weight * 100)}%
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-gray-500">
+              {status.payload_summary.start_date} ~ {status.payload_summary.end_date}
+              {status.payload_summary.rebalance_frequency && (
+                <span> · {toChineseValue(status.payload_summary.rebalance_frequency)}再平衡</span>
+              )}
+            </p>
+          </div>
         )}
 
         {/* 指标卡片 */}
