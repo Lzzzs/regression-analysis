@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Shell from './components/Shell';
 import AssetPicker, { SelectedAsset } from './components/AssetPicker';
 import { createJobAuto } from '../lib/api';
@@ -96,6 +97,7 @@ export default function Page() {
   const totalWeight = selectedAssets.reduce((sum, a) => sum + a.weight, 0);
   const weightOver = totalWeight > 100;
   const weightOk = totalWeight === 100;
+  const router = useRouter();
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -156,7 +158,7 @@ export default function Page() {
         }
       }
       const data = await createJobAuto(payload);
-      setJobId(data.job_id);
+      router.push(`/jobs/${data.job_id}`);
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       try {
