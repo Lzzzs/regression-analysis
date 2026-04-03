@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date
-from typing import Any
-
 from portfolio_lab.backtest import BacktestEngine
-from portfolio_lab.models import BacktestSpec, PortfolioSpec, RebalanceFrequency, to_primitive
 
 from .job_store import JobStore
+from .queue_backends import utc_now
+from apps.shared.execution import execute_backtest_job
 
 
 class InlineWorker:
@@ -19,36 +17,20 @@ class InlineWorker:
         self.engine = BacktestEngine(store.base_dir)
 
     def process_job(self, job_id: str) -> None:
-        job = self.store.claim_next_queued()
-        if not job or job["job_id"] != job_id:
-            return
-
-        payload = job["payload"]
         try:
-            result = self.engine.run(
-                PortfolioSpec(
-                    weights=payload["weights"],
-                    base_currency=payload.get("base_currency", "CNY"),
-                ),
-                BacktestSpec(
-                    snapshot_id=payload["snapshot_id"],
-                    start_date=date.fromisoformat(payload["start_date"]),
-                    end_date=date.fromisoformat(payload["end_date"]),
-                    rebalance_frequency=RebalanceFrequency(payload["rebalance_frequency"]),
-                    base_currency=payload.get("base_currency", "CNY"),
-                ),
-            )
-            self.store.save_result(
-                job_id,
-                {
-                    "job_id": job_id,
-                    "run_id": result.run_id,
-                    "snapshot_id": result.metadata.snapshot_id,
-                    "metrics": result.metrics,
-                    "equity_curve": to_primitive(result.equity_curve),
-                    "metadata": to_primitive(result.metadata),
-                },
-            )
-            self.store.mark_completed(job_id, result.run_id)
-        except Exception as exc:
-            self.store.mark_failed(job_id, str(exc))
+            job = self.store.get(job_id)
+        except FileNotFoundError:
+            return
+        if job.get("status") != "queued":
+            return
+        # Directly transition this specific job to running
+        self.store.update(job_id, status="running", started_at=utc_now())
+
+        execute_backtest_job(
+            job_id=job_id,
+            payload=job["payload"],
+            engine=self.engine,
+            save_result=self.store.save_result,
+            mark_completed=self.store.mark_completed,
+            mark_failed=self.store.mark_failed,
+        )

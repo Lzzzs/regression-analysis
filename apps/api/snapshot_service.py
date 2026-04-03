@@ -96,9 +96,15 @@ class SnapshotService:
     @staticmethod
     def _resolve_file(path_value: Any, default_rel_path: str) -> Path:
         raw = str(path_value).strip() if path_value is not None else default_rel_path
+        # Block path traversal patterns (e.g., ../../etc/passwd)
+        if ".." in raw:
+            raise ValidationError(f"provider file path must not contain '..': {raw}")
         path = Path(raw)
         if not path.is_absolute():
             path = Path.cwd() / path
+        # Only allow .csv files
+        if path.suffix.lower() != ".csv":
+            raise ValidationError(f"provider file must be a .csv file: {raw}")
         if not path.exists():
             raise ValidationError(f"provider file not found: {path}")
         return path

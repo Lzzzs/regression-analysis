@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from apps.shared.contracts import ContractError
 from portfolio_lab.errors import SnapshotError, ValidationError
 
@@ -24,10 +26,13 @@ try:
     from .asset_router import router as asset_router
 
     app = FastAPI(title="Portfolio Lab API", version="0.1.0")
+
+    _cors_origins_raw = os.environ.get("CORS_ORIGINS", "")
+    _cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()] if _cors_origins_raw else []
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=_cors_origins or ["*"],
+        allow_credentials=bool(_cors_origins),
         allow_methods=["*"],
         allow_headers=["*"],
     )

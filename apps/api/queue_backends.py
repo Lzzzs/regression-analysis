@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -194,16 +195,26 @@ class FileQueueBackend(QueueBackend):
         return records
 
     def claim_next_queued(self) -> dict[str, Any] | None:
-        queued = self.list_by_status("queued")
-        if not queued:
-            return None
-        record = queued[0]
-        started_at = utc_now()
-        record["status"] = "running"
-        record["started_at"] = started_at
-        record["events"] = self._append_event(record, "started", started_at)
-        self._write_json(self.jobs_dir / f"{record['job_id']}.json", record)
-        return record
+        lock_path = self.jobs_dir / ".claim.lock"
+        lock_path.touch(exist_ok=True)
+        with open(lock_path, "r") as lock_file:
+            try:
+                fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                return None  # another worker holds the lock
+            try:
+                queued = self.list_by_status("queued")
+                if not queued:
+                    return None
+                record = queued[0]
+                started_at = utc_now()
+                record["status"] = "running"
+                record["started_at"] = started_at
+                record["events"] = self._append_event(record, "started", started_at)
+                self._write_json(self.jobs_dir / f"{record['job_id']}.json", record)
+                return record
+            finally:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
 
     def save_result(self, job_id: str, payload: dict[str, Any]) -> None:
         self._write_json(self.results_dir / f"{job_id}.json", payload)

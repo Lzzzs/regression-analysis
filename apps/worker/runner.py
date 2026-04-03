@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import time
-from datetime import date
 from pathlib import Path
 
 from apps.api.job_store import JobStore
 from portfolio_lab.backtest import BacktestEngine
-from portfolio_lab.models import BacktestSpec, PortfolioSpec, RebalanceFrequency, to_primitive
+from apps.shared.execution import execute_backtest_job
 
 
 class BacktestWorker:
@@ -22,38 +21,14 @@ class BacktestWorker:
         if not job:
             return False
 
-        payload = job["payload"]
-        job_id = job["job_id"]
-
-        try:
-            result = self.engine.run(
-                PortfolioSpec(
-                    weights=payload["weights"],
-                    base_currency=payload.get("base_currency", "CNY"),
-                ),
-                BacktestSpec(
-                    snapshot_id=payload["snapshot_id"],
-                    start_date=date.fromisoformat(payload["start_date"]),
-                    end_date=date.fromisoformat(payload["end_date"]),
-                    rebalance_frequency=RebalanceFrequency(payload["rebalance_frequency"]),
-                    base_currency=payload.get("base_currency", "CNY"),
-                ),
-            )
-            self.store.save_result(
-                job_id,
-                {
-                    "job_id": job_id,
-                    "run_id": result.run_id,
-                    "snapshot_id": result.metadata.snapshot_id,
-                    "metrics": result.metrics,
-                    "equity_curve": to_primitive(result.equity_curve),
-                    "metadata": to_primitive(result.metadata),
-                },
-            )
-            self.store.mark_completed(job_id, result.run_id)
-        except Exception as exc:
-            self.store.mark_failed(job_id, str(exc))
-
+        execute_backtest_job(
+            job_id=job["job_id"],
+            payload=job["payload"],
+            engine=self.engine,
+            save_result=self.store.save_result,
+            mark_completed=self.store.mark_completed,
+            mark_failed=self.store.mark_failed,
+        )
         return True
 
     def run_forever(self, poll_seconds: float = 1.0) -> None:
