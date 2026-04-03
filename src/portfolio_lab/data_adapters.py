@@ -347,6 +347,12 @@ class YFinancePriceProvider:
             code = symbol.lstrip("0") or "0"
             code = code.zfill(4)
             return f"{code}.HK"
+        if self.market == "cn":
+            # Shanghai: 6xxxxx → .SS; Shenzhen: 0/1/3xxxxx → .SZ
+            code = symbol.replace(".SH", "").replace(".SZ", "")
+            if code.startswith("6") or code.startswith("5"):
+                return f"{code}.SS"
+            return f"{code}.SZ"
         return symbol
 
     def fetch_price_rows(self, start_date: date, end_date: date, symbol: str) -> list[dict]:

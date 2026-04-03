@@ -8,14 +8,18 @@ from pathlib import Path
 from typing import Any
 
 from portfolio_lab.data_adapters import (
-    AKShareFXProvider,
-    AKSharePriceProvider,
     BinancePriceProvider,
     LocalCSVFXProvider,
     LocalCSVPriceProvider,
     RoutedMarketDataAdapter,
     YFinancePriceProvider,
 )
+
+try:
+    from portfolio_lab.data_adapters import AKShareFXProvider, AKSharePriceProvider
+    _AKSHARE_AVAILABLE = True
+except ImportError:
+    _AKSHARE_AVAILABLE = False
 from portfolio_lab.errors import ValidationError
 from portfolio_lab.models import AssetDefinition, AssetType, CalendarType
 from portfolio_lab.universe import UniverseStore
@@ -139,13 +143,19 @@ class SnapshotService:
         required_fx_pairs: list[str],
     ) -> dict[str, Any]:
         store, asset_market_map = self._build_store_from_assets(assets_raw)
+        if _AKSHARE_AVAILABLE:
+            cn_provider = AKSharePriceProvider(market="cn")
+            fx_provider: Any = AKShareFXProvider()
+        else:
+            cn_provider = YFinancePriceProvider(market="cn")
+            fx_file = self._resolve_file(None, DEFAULT_PROVIDER_FILES["fx_rates"])
+            fx_provider = LocalCSVFXProvider(fx_file, name="fx-csv-fallback")
         providers_by_market = {
-            "CN": AKSharePriceProvider(market="cn"),
+            "CN": cn_provider,
             "US": YFinancePriceProvider(market="us"),
             "HK": YFinancePriceProvider(market="hk"),
             "CRYPTO": BinancePriceProvider(),
         }
-        fx_provider = AKShareFXProvider()
         adapter = RoutedMarketDataAdapter(
             providers_by_market=providers_by_market,
             fx_provider=fx_provider,

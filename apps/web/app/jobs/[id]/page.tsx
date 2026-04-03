@@ -40,6 +40,9 @@ function formatYLabel(value: number, isPercent: boolean): string {
 
 function formatMetricValue(key: string, value: number) {
   const k = key.toLowerCase();
+  if (k.includes('days') || k.includes('duration')) {
+    return `${Math.round(value)} 天`;
+  }
   if (k.includes('drawdown') || k.includes('volatility') || k.includes('return')) {
     return `${(value * 100).toFixed(2)}%`;
   }

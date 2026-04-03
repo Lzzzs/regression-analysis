@@ -29,23 +29,25 @@
 
 ### P0 - 基础链路必须通（不修好其他都白搭）
 
-- [ ] **修复依赖安装问题**
-  - akshare 的 curl_cffi 在 macOS 编译失败，考虑 pin 版本或提供 fallback
-  - pyproject.toml 应列全所有依赖，`pip install -e .` 能一步搞定
-  - 提供 `requirements.txt` 或 lock 文件确保可复现
+- [x] **修复依赖安装问题** ✅ 2026-04-03
+  - pyproject.toml 已列全核心依赖（pandas, fastapi, uvicorn, redis），akshare 改为可选依赖
+  - 已生成 requirements.txt 确保可复现
+  - akshare 不装也能正常运行（fallback 到 yfinance + CSV）
 
-- [ ] **修复 A股/美股/港股资产搜索**
-  - 当前 A股搜索 "510300" 返回空，API `/assets/search?market=cn&query=510` 也返回空
-  - 搜索依赖 akshare 实时拉取，akshare 没装就完全不可用
-  - 应提供内置的热门资产列表作为 fallback（类似加密市场的硬编码列表）
+- [x] **修复 A股/美股/港股资产搜索** ✅ 2026-04-03
+  - asset_router.py 已有 fallback 硬编码列表（CN 20个、US 15个、HK 12个）
+  - akshare 不装时自动使用 fallback 列表，搜索正常工作
+  - snapshot 生成也添加了 fallback：CN 市场回退到 yfinance，FX 回退到本地 CSV
 
-- [ ] **去掉"结束日期必须为周五"的限制**
-  - 这个限制对用户来说非常反直觉，普通人不会去算哪天是周五
-  - 如果快照需要对齐周五，应该由后端自动调整，而不是让用户手动选
+- [x] **去掉"结束日期必须为周五"的限制** ✅ 已完成
+  - orchestration.py 已实现自动对齐到最近周五，不再报错
+  - 前端提示"结束日期将自动对齐到周五"仅为信息提示
 
-- [ ] **添加离线样本数据**
-  - data/providers 下虽然有 CSV，但当前流程不走离线数据
-  - 应支持"无网络环境下也能跑一次完整回测"的 demo 模式
+- [x] **添加离线样本数据** ✅ 2026-04-03
+  - cn_prices.csv 扩展到 20 个热门 A 股/ETF，约 2 年数据（11780 行）
+  - us_prices.csv 扩展到 15 个热门美股/ETF，约 2 年数据（8835 行）
+  - fx_rates.csv 扩展到 USD/CNY + HKD/CNY，约 2 年数据（1178 行）
+  - 当 akshare 不可用时，FX 数据自动回退到本地 CSV
 
 ### P1 - 核心功能补全（从 demo 变成可用产品）
 
