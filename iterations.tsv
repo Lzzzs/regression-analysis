@@ -5,3 +5,5 @@ b89ee60	-	yes	yes	keep	baseline (82 tests, build ok)
 4292916	B	yes	yes	keep-pending-review	提交回测后自动跳转到任务详情页
 03825c3	B	yes	yes	keep-pending-review	Shell API 状态指示器改为真实健康检查
 41791fd	A	yes	yes	keep	修复 dateOffset UTC 时区 bug + 提取 toLocalDateStr
+1223ddf	A	yes	yes	keep	资产缓存改为每个市场独立锁
+e933300	B	yes	yes	keep-pending-review	提交按钮添加 spinner 动画
