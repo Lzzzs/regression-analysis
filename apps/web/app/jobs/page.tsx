@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Shell from '../components/Shell';
 import { toChineseFieldName, toChineseValue } from '../../lib/field_localizer';
-import { listDeadLetterJobs, listJobs, requeueJob } from '../../lib/api';
+import { listJobs, requeueJob } from '../../lib/api';
 
 type JobItem = {
   job_id: string;
@@ -94,26 +94,9 @@ export default function JobsPage() {
     setLoading(true);
     setError('');
     try {
-      const all = await listJobs({ status: status || undefined, q: debouncedSearch || undefined, limit: PAGE_SIZE, offset });
-      // 当没有筛选状态时，同时拉取死信任务合并展示
-      if (!status) {
-        const dl = await listDeadLetterJobs({ q: debouncedSearch || undefined, limit: 100 });
-        const dlIds = new Set((dl.items || []).map((j: JobItem) => j.job_id));
-        const merged = [
-          ...(dl.items || []),
-          ...(all.items || []).filter((j: JobItem) => !dlIds.has(j.job_id)),
-        ];
-        // Sort by created_at descending (newest first)
-        merged.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
-        setJobs(merged);
-        setTotal(all.total || 0);
-      } else {
-        const allJobs = all.items || [];
-        // Sort by created_at descending (newest first)
-        allJobs.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
-        setJobs(allJobs);
-        setTotal(all.total || 0);
-      }
+      const data = await listJobs({ status: status || undefined, q: debouncedSearch || undefined, limit: PAGE_SIZE, offset });
+      setJobs(data.items || []);
+      setTotal(data.total || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
