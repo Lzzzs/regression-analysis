@@ -27,6 +27,59 @@ function dateOffset(base: string, years: number): string {
 const DEFAULT_END = todayStr();
 const DEFAULT_START = dateOffset(DEFAULT_END, 1);
 
+type StrategyTemplate = {
+  name: string;
+  description: string;
+  assets: SelectedAsset[];
+};
+
+const STRATEGY_TEMPLATES: StrategyTemplate[] = [
+  {
+    name: '60/40 股债',
+    description: '经典股债平衡：沪深300 60% + 国债ETF 40%',
+    assets: [
+      { code: '510300', name: '沪深300ETF', market: 'cn', asset_type: 'etf', weight: 60 },
+      { code: '511010', name: '国债ETF', market: 'cn', asset_type: 'etf', weight: 40 },
+    ],
+  },
+  {
+    name: 'A股龙头',
+    description: '贵州茅台 + 招商银行 + 中国平安 + 长江电力',
+    assets: [
+      { code: '600519', name: '贵州茅台', market: 'cn', asset_type: 'stock', weight: 25 },
+      { code: '600036', name: '招商银行', market: 'cn', asset_type: 'stock', weight: 25 },
+      { code: '601318', name: '中国平安', market: 'cn', asset_type: 'stock', weight: 25 },
+      { code: '600900', name: '长江电力', market: 'cn', asset_type: 'stock', weight: 25 },
+    ],
+  },
+  {
+    name: '中美配置',
+    description: '沪深300 50% + 标普500 50%',
+    assets: [
+      { code: '510300', name: '沪深300ETF', market: 'cn', asset_type: 'etf', weight: 50 },
+      { code: 'SPY', name: 'S&P 500 ETF', market: 'us', asset_type: 'etf', weight: 50 },
+    ],
+  },
+  {
+    name: '科技成长',
+    description: 'NVDA + AAPL + MSFT + GOOGL',
+    assets: [
+      { code: 'NVDA', name: 'NVIDIA', market: 'us', asset_type: 'stock', weight: 25 },
+      { code: 'AAPL', name: 'Apple', market: 'us', asset_type: 'stock', weight: 25 },
+      { code: 'MSFT', name: 'Microsoft', market: 'us', asset_type: 'stock', weight: 25 },
+      { code: 'GOOGL', name: 'Alphabet', market: 'us', asset_type: 'stock', weight: 25 },
+    ],
+  },
+  {
+    name: '加密双雄',
+    description: 'BTC 70% + ETH 30%',
+    assets: [
+      { code: 'BTC', name: 'Bitcoin', market: 'crypto', asset_type: 'crypto', weight: 70 },
+      { code: 'ETH', name: 'Ethereum', market: 'crypto', asset_type: 'crypto', weight: 30 },
+    ],
+  },
+];
+
 export default function Page() {
   const [startDate, setStartDate] = useState(DEFAULT_START);
   const [endDate, setEndDate] = useState(DEFAULT_END);
@@ -190,6 +243,24 @@ export default function Page() {
                 </select>
                 <p className="text-xs text-gray-400 mt-1">结束日期将自动对齐到周五</p>
               </div>
+            </div>
+          </div>
+
+          {/* 策略模板 */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">策略模板（可选）</p>
+            <div className="flex flex-wrap gap-2">
+              {STRATEGY_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.name}
+                  type="button"
+                  onClick={() => setSelectedAssets(tpl.assets)}
+                  className="group border border-gray-200 rounded-lg px-3 py-2 text-left hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-sm font-medium text-gray-900">{tpl.name}</span>
+                  <span className="block text-xs text-gray-400 group-hover:text-gray-500">{tpl.description}</span>
+                </button>
+              ))}
             </div>
           </div>
 
