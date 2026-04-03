@@ -70,19 +70,48 @@ function statusBadge(status: string) {
   );
 }
 
-function LineChart({ title, values, startLabel, endLabel, stroke, isPercent = false }: {
-  title: string; values: number[]; startLabel: string; endLabel: string; stroke: string; isPercent?: boolean;
+function LineChart({ title, values, days, startLabel, endLabel, stroke, isPercent = false }: {
+  title: string; values: number[]; days?: string[]; startLabel: string; endLabel: string; stroke: string; isPercent?: boolean;
 }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
   if (!values.length) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
+  const range = max - min;
   const path = buildLinePath(values, min, max);
+  const innerW = CHART_WIDTH - CHART_PADDING.left - CHART_PADDING.right;
   const innerH = CHART_HEIGHT - CHART_PADDING.top - CHART_PADDING.bottom;
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
+
+  function onMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * CHART_WIDTH;
+    const ratio = (svgX - CHART_PADDING.left) / innerW;
+    const idx = Math.round(ratio * (values.length - 1));
+    if (idx >= 0 && idx < values.length) setHoverIdx(idx);
+    else setHoverIdx(null);
+  }
+
+  const hoverX = hoverIdx !== null ? CHART_PADDING.left + (hoverIdx / (values.length - 1)) * innerW : 0;
+  const hoverY = hoverIdx !== null ? CHART_PADDING.top + (range === 0 ? 0.5 : (max - values[hoverIdx]) / range) * innerH : 0;
+  const hoverVal = hoverIdx !== null ? values[hoverIdx] : 0;
+  const hoverDay = hoverIdx !== null && days ? days[hoverIdx] : '';
+
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <p className="text-xs font-semibold text-gray-900 mb-3">{title}</p>
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        className="w-full cursor-crosshair"
+        preserveAspectRatio="xMidYMid meet"
+        onMouseMove={onMouseMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
         <rect width={CHART_WIDTH} height={CHART_HEIGHT} fill="#fff" />
         {gridLines.map((r) => {
           const y = CHART_PADDING.top + innerH * r;
@@ -101,6 +130,20 @@ function LineChart({ title, values, startLabel, endLabel, stroke, isPercent = fa
           );
         })}
         {path && <path d={path} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinejoin="round" />}
+        {hoverIdx !== null && (
+          <>
+            <line x1={hoverX} y1={CHART_PADDING.top} x2={hoverX} y2={CHART_HEIGHT - CHART_PADDING.bottom} stroke="#9ca3af" strokeWidth="1" strokeDasharray="4 2" />
+            <line x1={CHART_PADDING.left} y1={hoverY} x2={CHART_WIDTH - CHART_PADDING.right} y2={hoverY} stroke="#9ca3af" strokeWidth="1" strokeDasharray="4 2" />
+            <circle cx={hoverX} cy={hoverY} r="5" fill={stroke} stroke="#fff" strokeWidth="2" />
+            <rect x={hoverX - 70} y={hoverY - 44} width="140" height="36" rx="6" fill="#1f2937" opacity="0.9" />
+            <text x={hoverX} y={hoverY - 28} textAnchor="middle" fill="#fff" fontSize="11" fontWeight="bold">
+              {hoverDay ? `${hoverDay}` : ''}
+            </text>
+            <text x={hoverX} y={hoverY - 14} textAnchor="middle" fill="#d1d5db" fontSize="11">
+              {formatYLabel(hoverVal, isPercent)}
+            </text>
+          </>
+        )}
       </svg>
       <div className="flex justify-between text-xs text-gray-400 mt-1">
         <span>{startLabel}</span>
@@ -159,6 +202,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
   }, [result]);
 
   const equityValues = equityCurve.map((p) => p.equity);
+  const equityDays = equityCurve.map((p) => p.day);
   const drawdownValues = useMemo(() => {
     let peak = -Infinity;
     return equityValues.map((v) => {
@@ -244,8 +288,8 @@ export default function JobPage({ params }: { params: { id: string } }) {
 
             {/* 图表 */}
             <div className="space-y-4 mb-6">
-              <LineChart title="净值曲线" values={equityValues} startLabel={startDay} endLabel={endDay} stroke="#111111" />
-              <LineChart title="回撤曲线" values={drawdownValues} startLabel={startDay} endLabel={endDay} stroke="#ef4444" isPercent />
+              <LineChart title="净值曲线" values={equityValues} days={equityDays} startLabel={startDay} endLabel={endDay} stroke="#111111" />
+              <LineChart title="回撤曲线" values={drawdownValues} days={equityDays} startLabel={startDay} endLabel={endDay} stroke="#ef4444" isPercent />
             </div>
           </>
         )}

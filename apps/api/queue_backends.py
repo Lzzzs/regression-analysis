@@ -190,7 +190,7 @@ class FileQueueBackend(QueueBackend):
         records = []
         for file_path in sorted(self.jobs_dir.glob("*.json")):
             records.append(json.loads(file_path.read_text(encoding="utf-8")))
-        records.sort(key=lambda item: item.get("created_at", ""))
+        records.sort(key=lambda item: item.get("created_at", ""), reverse=True)
         return records
 
     def claim_next_queued(self) -> dict[str, Any] | None:
@@ -287,7 +287,7 @@ class RedisQueueBackend(QueueBackend):
             if isinstance(raw, bytes):
                 raw = raw.decode("utf-8")
             records.append(json.loads(raw))
-        records.sort(key=lambda item: item.get("created_at", ""))
+        records.sort(key=lambda item: item.get("created_at", ""), reverse=True)
         return records
 
     def claim_next_queued(self) -> dict[str, Any] | None:
