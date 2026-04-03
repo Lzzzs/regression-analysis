@@ -15,7 +15,29 @@ type JobItem = {
   max_retries?: number;
   remaining_retries?: number;
   error?: string | null;
+  payload?: {
+    weights?: Record<string, number>;
+    start_date?: string;
+    end_date?: string;
+    rebalance_frequency?: string;
+    assets?: { code: string; name?: string; market: string }[];
+  };
 };
+
+function portfolioSummary(job: JobItem): string {
+  const w = job.payload?.weights;
+  if (!w) return '';
+  return Object.entries(w)
+    .map(([code, weight]) => `${code} ${Math.round(weight * 100)}%`)
+    .join(' / ');
+}
+
+function dateRange(job: JobItem): string {
+  const s = job.payload?.start_date;
+  const e = job.payload?.end_date;
+  if (!s || !e) return '';
+  return `${s} ~ ${e}`;
+}
 
 const PAGE_SIZE = 20;
 
@@ -164,8 +186,8 @@ export default function JobsPage() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{toChineseFieldName('job_id')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">组合</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{toChineseFieldName('status')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{toChineseFieldName('retry_count')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{toChineseFieldName('created_at')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">操作</th>
               </tr>
@@ -178,8 +200,11 @@ export default function JobsPage() {
                       {j.job_id}
                     </Link>
                   </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-gray-700">{portfolioSummary(j)}</span>
+                    {dateRange(j) && <span className="block text-xs text-gray-400">{dateRange(j)}</span>}
+                  </td>
                   <td className="px-4 py-3">{statusBadge(j.status)}</td>
-                  <td className="px-4 py-3 text-gray-500">{j.retry_count ?? 0}/{j.max_retries ?? 0}</td>
                   <td className="px-4 py-3 text-gray-500">{formatTime(j.created_at)}</td>
                   <td className="px-4 py-3">
                     {(j.status === 'dead-letter' || j.status === 'failed') ? (
@@ -206,7 +231,7 @@ export default function JobsPage() {
               ))}
               {!loading && jobs.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">暂无任务</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">暂无任务</td>
                 </tr>
               )}
             </tbody>
@@ -223,7 +248,8 @@ export default function JobsPage() {
                 </Link>
                 {statusBadge(j.status)}
               </div>
-              <div className="text-xs text-gray-400">{formatTime(j.created_at)} · 重试 {j.retry_count ?? 0}/{j.max_retries ?? 0}</div>
+              {portfolioSummary(j) && <p className="text-xs text-gray-600 mt-0.5">{portfolioSummary(j)}</p>}
+              <div className="text-xs text-gray-400">{formatTime(j.created_at)}{dateRange(j) && ` · ${dateRange(j)}`}</div>
               {(j.status === 'dead-letter' || j.status === 'failed') && (
                 <button
                   onClick={() => onRequeue(j.job_id)}
