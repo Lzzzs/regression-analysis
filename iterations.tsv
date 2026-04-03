@@ -3,3 +3,5 @@ b89ee60	-	yes	yes	keep	baseline (82 tests, build ok)
 1c6e56d	B	yes	yes	keep-pending-review	首页添加策略模板一键加载（5个预设）
 2ca11bc	B	yes	yes	keep-pending-review	任务列表页增加组合摘要和日期范围列
 4292916	B	yes	yes	keep-pending-review	提交回测后自动跳转到任务详情页
+03825c3	B	yes	yes	keep-pending-review	Shell API 状态指示器改为真实健康检查
+41791fd	A	yes	yes	keep	修复 dateOffset UTC 时区 bug + 提取 toLocalDateStr
