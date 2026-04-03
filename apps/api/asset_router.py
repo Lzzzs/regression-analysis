@@ -24,11 +24,10 @@ except ImportError:
 # In-memory caches — one per market, each entry: {"data": list, "ts": float}
 # ---------------------------------------------------------------------------
 _CACHE_TTL = 1800  # 30 minutes — akshare calls are slow, cache aggressively
-_REFRESH_LOCK = threading.Lock()
 
-_cn_cache: dict[str, Any] = {"data": None, "ts": 0.0}
-_us_cache: dict[str, Any] = {"data": None, "ts": 0.0}
-_hk_cache: dict[str, Any] = {"data": None, "ts": 0.0}
+_cn_cache: dict[str, Any] = {"data": None, "ts": 0.0, "lock": threading.Lock()}
+_us_cache: dict[str, Any] = {"data": None, "ts": 0.0, "lock": threading.Lock()}
+_hk_cache: dict[str, Any] = {"data": None, "ts": 0.0, "lock": threading.Lock()}
 
 _CRYPTO_ITEMS = [
     {"code": "BTC", "name": "Bitcoin", "market": "crypto", "asset_type": "crypto"},
@@ -239,12 +238,15 @@ _FETCH_MAP = {
 
 def _refresh_cache_background(market: str) -> None:
     """Refresh cache in a background thread — never blocks the request."""
-    if not _REFRESH_LOCK.acquire(blocking=False):
-        return  # another refresh already in progress
+    cache = _CACHE_MAP.get(market)
+    if not cache:
+        return
+    lock = cache["lock"]
+    if not lock.acquire(blocking=False):
+        return  # another refresh for this market already in progress
     try:
         fetch_fn = _FETCH_MAP.get(market)
-        cache = _CACHE_MAP.get(market)
-        if fetch_fn and cache:
+        if fetch_fn:
             data = fetch_fn()
             if data:
                 cache["data"] = data
@@ -252,7 +254,7 @@ def _refresh_cache_background(market: str) -> None:
     except Exception:
         pass
     finally:
-        _REFRESH_LOCK.release()
+        lock.release()
 
 
 def _get_cached_items(market: str) -> list[dict]:
