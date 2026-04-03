@@ -8,7 +8,10 @@ import { createJobAuto } from '../lib/api';
 import { toChineseValue } from '../lib/field_localizer';
 
 function todayStr(): string {
-  const d = new Date();
+  return toLocalDateStr(new Date());
+}
+
+function toLocalDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -16,13 +19,13 @@ function todayStr(): string {
 }
 
 function dateOffset(base: string, years: number): string {
-  const d = new Date(base);
+  const d = new Date(base + 'T00:00:00');
   d.setFullYear(d.getFullYear() - years);
   // Move to next Monday if it falls on weekend
-  const day = d.getDay();
-  if (day === 0) d.setDate(d.getDate() + 1);
-  else if (day === 6) d.setDate(d.getDate() + 2);
-  return d.toISOString().slice(0, 10);
+  const dow = d.getDay();
+  if (dow === 0) d.setDate(d.getDate() + 1);
+  else if (dow === 6) d.setDate(d.getDate() + 2);
+  return toLocalDateStr(d);
 }
 
 const DEFAULT_END = todayStr();
