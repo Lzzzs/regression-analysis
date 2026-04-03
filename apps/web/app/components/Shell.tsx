@@ -1,20 +1,42 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { API_BASE } from '../../lib/api';
 
 const NAV = [
   { href: '/', label: '提交任务', icon: '📝' },
   { href: '/jobs', label: '任务列表', icon: '📋' },
 ];
 
+function useApiHealth() {
+  const [ok, setOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const check = () => {
+      fetch(`${API_BASE}/health`, { cache: 'no-store' })
+        .then((r) => setOk(r.ok))
+        .catch(() => setOk(false));
+    };
+    check();
+    timer = setInterval(check, 15000);
+    return () => { if (timer) clearInterval(timer); };
+  }, []);
+  return ok;
+}
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const apiOk = useApiHealth();
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   }
+
+  const statusColor = apiOk === null ? 'bg-gray-300' : apiOk ? 'bg-green-500' : 'bg-red-400';
+  const statusText = apiOk === null ? '检测中...' : apiOk ? 'API 就绪' : 'API 离线';
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -49,8 +71,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         {/* API 状态 */}
         <div className="px-4 py-3 border-t border-gray-100">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-xs text-gray-400">API 就绪</span>
+            <span className={`w-2 h-2 rounded-full ${statusColor}`} />
+            <span className="text-xs text-gray-400">{statusText}</span>
           </div>
         </div>
       </aside>
