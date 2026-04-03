@@ -132,12 +132,18 @@
 ## 三、技术债
 
 - [ ] Next.js 14.2.0 有已知安全漏洞，需升级
-- [ ] pyproject.toml 没有列全 Python 依赖（akshare 等），安装体验差
+- [x] pyproject.toml 没有列全 Python 依赖 ✅ 2026-04-03 — 已补全核心依赖，akshare 改为可选
 - [ ] 前端没有单元测试
 - [ ] API 没有 OpenAPI 文档说明（FastAPI 自带，但需要补充描述）
 - [ ] 没有 CI/CD 配置
-- [ ] Worker 是单进程轮询，无法水平扩展
+- [x] Worker 是单进程轮询，无法水平扩展 ✅ 2026-04-03 — FileQueue 加了 fcntl 文件锁，多 worker 并发安全
 - [ ] 日志只写文件，没有结构化日志
+- [x] CORS 配置错误（allow_origins=* + credentials=true） ✅ 2026-04-03 — 支持 CORS_ORIGINS 环境变量
+- [x] InlineWorker 并发时会卡死 job ✅ 2026-04-03 — 改用直接 get+update 指定 job
+- [x] provider_files 路径遍历风险 ✅ 2026-04-03 — 禁止 .. 路径 + 限制 .csv 后缀
+- [x] 标准差用了总体而非样本（N→N-1） ✅ 2026-04-03 — 修正夏普/索提诺/波动率计算
+- [x] todayStr UTC 时区偏移 ✅ 2026-04-03 — 改用本地日期
+- [x] inline_worker 和 runner 代码重复 ✅ 2026-04-03 — 提取 apps/shared/execution.py
 
 ---
 
