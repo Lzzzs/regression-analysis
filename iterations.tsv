@@ -18,3 +18,4 @@ da6eb88	A	yes	yes	keep	引擎添加年度收益分解计算
 7ebe141	A	yes	yes	keep	引擎添加 Top N 回撤事件分析
 0134810	B	yes	yes	keep-pending-review	任务详情页展示 Top 回撤事件表
 8a0fa3d	A	yes	yes	keep	修复 API 返回 yearly_returns/top_drawdowns + result_summary
+c4ca227	A	yes	yes	keep	修复结束日期验证 UTC 时区 bug（阻塞提交）
