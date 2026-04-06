@@ -13,3 +13,8 @@ e933300	B	yes	yes	keep-pending-review	提交按钮添加 spinner 动画
 da6eb88	A	yes	yes	keep	引擎添加年度收益分解计算
 75ae4d7	B	yes	yes	keep-pending-review	任务详情页展示年度收益分解表
 61cb36e	B	yes	yes	keep-pending-review	失败任务详情页展示错误原因和重试按钮
+025c7be	B	yes	yes	keep-pending-review	运行中/排队中任务显示 spinner 加载动画
+26b36af	A	yes	yes	keep	补充 yearly_returns 单元测试（84 tests）
+7ebe141	A	yes	yes	keep	引擎添加 Top N 回撤事件分析
+0134810	B	yes	yes	keep-pending-review	任务详情页展示 Top 回撤事件表
+8a0fa3d	A	yes	yes	keep	修复 API 返回 yearly_returns/top_drawdowns + result_summary
