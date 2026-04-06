@@ -291,6 +291,37 @@ export default function JobPage({ params }: { params: { id: string } }) {
               <LineChart title="净值曲线" values={equityValues} days={equityDays} startLabel={startDay} endLabel={endDay} stroke="#111111" />
               <LineChart title="回撤曲线" values={drawdownValues} days={equityDays} startLabel={startDay} endLabel={endDay} stroke="#ef4444" isPercent />
             </div>
+
+            {/* 年度收益分解 */}
+            {Array.isArray(result.yearly_returns) && result.yearly_returns.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">年度收益分解</p>
+                <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-400">年份</th>
+                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-400">年初净值</th>
+                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-400">年末净值</th>
+                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-400">收益率</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {result.yearly_returns.map((yr: any) => (
+                        <tr key={yr.year}>
+                          <td className="px-4 py-2 font-mono text-gray-900">{yr.year}</td>
+                          <td className="px-4 py-2 text-right text-gray-500">{yr.start_equity?.toFixed(4)}</td>
+                          <td className="px-4 py-2 text-right text-gray-500">{yr.end_equity?.toFixed(4)}</td>
+                          <td className={`px-4 py-2 text-right font-semibold ${yr.return >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {(yr.return * 100).toFixed(2)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
 
