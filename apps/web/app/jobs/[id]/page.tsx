@@ -362,6 +362,56 @@ export default function JobPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
+            {/* 月度收益热力图 */}
+            {Array.isArray(result.monthly_returns) && result.monthly_returns.length > 0 && (() => {
+              const months = result.monthly_returns as { year: number; month: number; return: number }[];
+              const years = [...new Set(months.map((m: any) => m.year))].sort();
+              const MONTH_LABELS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+              const getReturn = (y: number, m: number) => {
+                const item = months.find((r: any) => r.year === y && r.month === m);
+                return item ? item.return : null;
+              };
+              const cellColor = (v: number | null) => {
+                if (v === null) return 'bg-gray-50 text-gray-300';
+                if (v > 0.05) return 'bg-green-200 text-green-900';
+                if (v > 0.02) return 'bg-green-100 text-green-800';
+                if (v > 0) return 'bg-green-50 text-green-700';
+                if (v > -0.02) return 'bg-red-50 text-red-600';
+                if (v > -0.05) return 'bg-red-100 text-red-700';
+                return 'bg-red-200 text-red-900';
+              };
+              return (
+                <div className="mb-6">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">月度收益热力图</p>
+                  <div className="bg-white border border-gray-100 rounded-xl p-4 overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr>
+                          <th className="px-2 py-1 text-left text-gray-400">年份</th>
+                          {MONTH_LABELS.map((l) => <th key={l} className="px-2 py-1 text-center text-gray-400">{l}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {years.map((y) => (
+                          <tr key={y}>
+                            <td className="px-2 py-1 font-mono text-gray-700">{y}</td>
+                            {Array.from({ length: 12 }, (_, i) => {
+                              const v = getReturn(y, i + 1);
+                              return (
+                                <td key={i} className={`px-2 py-1 text-center font-semibold rounded ${cellColor(v)}`}>
+                                  {v !== null ? `${(v * 100).toFixed(1)}%` : '-'}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Top 回撤事件 */}
             {Array.isArray(result.top_drawdowns) && result.top_drawdowns.length > 0 && (
               <div className="mb-6">
