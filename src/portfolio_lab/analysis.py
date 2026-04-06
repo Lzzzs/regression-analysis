@@ -98,6 +98,63 @@ def analyze_run(
     }
 
 
+def top_drawdown_events(run: SingleRunResult, n: int = 5) -> list[dict]:
+    """Find the top N drawdown events by magnitude.
+
+    Returns list of dicts: [{start_date, trough_date, end_date, drawdown, duration_days}].
+    end_date is when equity recovers to the pre-drawdown peak (None if not recovered).
+    """
+    if len(run.equity_curve) < 2:
+        return []
+
+    events: list[dict] = []
+    peak = run.equity_curve[0].equity
+    peak_date = run.equity_curve[0].day
+    in_drawdown = False
+    trough = peak
+    trough_date = peak_date
+    dd_start_date = peak_date
+
+    for pt in run.equity_curve:
+        if pt.equity >= peak:
+            if in_drawdown:
+                # Recovered — close this drawdown event
+                dd = (trough / peak - 1.0) if peak > 0 else 0.0
+                events.append({
+                    "start_date": dd_start_date.isoformat(),
+                    "trough_date": trough_date.isoformat(),
+                    "end_date": pt.day.isoformat(),
+                    "drawdown": dd,
+                    "duration_days": (pt.day - dd_start_date).days,
+                })
+                in_drawdown = False
+            peak = pt.equity
+            peak_date = pt.day
+            trough = peak
+            trough_date = peak_date
+        else:
+            if not in_drawdown:
+                in_drawdown = True
+                dd_start_date = peak_date
+            if pt.equity < trough:
+                trough = pt.equity
+                trough_date = pt.day
+
+    # If still in drawdown at end of curve
+    if in_drawdown:
+        dd = (trough / peak - 1.0) if peak > 0 else 0.0
+        events.append({
+            "start_date": dd_start_date.isoformat(),
+            "trough_date": trough_date.isoformat(),
+            "end_date": None,
+            "drawdown": dd,
+            "duration_days": (run.equity_curve[-1].day - dd_start_date).days,
+        })
+
+    events.sort(key=lambda e: e["drawdown"])
+    return events[:n]
+
+
 def yearly_returns(run: SingleRunResult) -> list[dict]:
     """Compute per-year return breakdown from the equity curve.
 
