@@ -9,3 +9,7 @@ b89ee60	-	yes	yes	keep	baseline (82 tests, build ok)
 e933300	B	yes	yes	keep-pending-review	提交按钮添加 spinner 动画
 2bb780d	A	yes	yes	keep	API 层添加 TypeScript 返回类型定义
 9cc60da	A	yes	yes	keep	删除任务列表页冗余的死信任务双请求合并
+0b2030a	B	yes	yes	keep-pending-review	任务列表页展示核心指标（年化/夏普/回撤）
+da6eb88	A	yes	yes	keep	引擎添加年度收益分解计算
+75ae4d7	B	yes	yes	keep-pending-review	任务详情页展示年度收益分解表
+61cb36e	B	yes	yes	keep-pending-review	失败任务详情页展示错误原因和重试按钮
