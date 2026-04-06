@@ -452,6 +452,26 @@ class TestGoldenCase8_YearlyReturns(GoldenCaseBase):
         _assert_close(self, yr[0]["end_equity"], 1.001, "end_equity")
         _assert_close(self, yr[0]["return"], 0.001, "yearly_return")
 
+    def test_monthly_returns(self) -> None:
+        from portfolio_lab.analysis import monthly_returns
+
+        result = self.engine.run(
+            PortfolioSpec(weights={"CSI300": 1.0}, base_currency="CNY"),
+            BacktestSpec(
+                snapshot_id=self.snapshot_id,
+                start_date=date(2026, 1, 5),
+                end_date=date(2026, 1, 9),
+                rebalance_frequency=RebalanceFrequency.NONE,
+                base_currency="CNY",
+            ),
+        )
+
+        mr = monthly_returns(result)
+        self.assertEqual(len(mr), 1)
+        self.assertEqual(mr[0]["year"], 2026)
+        self.assertEqual(mr[0]["month"], 1)
+        _assert_close(self, mr[0]["return"], 0.001, "monthly_return_jan2026")
+
     def test_empty_curve(self) -> None:
         from datetime import datetime
         from portfolio_lab.analysis import yearly_returns
