@@ -182,6 +182,29 @@ def yearly_returns(run: SingleRunResult) -> list[dict]:
     return result
 
 
+def monthly_returns(run: SingleRunResult) -> list[dict]:
+    """Compute per-month return for heatmap display.
+
+    Returns list of dicts: [{year, month, return}].
+    """
+    if len(run.equity_curve) < 2:
+        return []
+
+    by_month: dict[tuple[int, int], list] = {}
+    for pt in run.equity_curve:
+        key = (pt.day.year, pt.day.month)
+        by_month.setdefault(key, []).append(pt)
+
+    result = []
+    for (year, month) in sorted(by_month):
+        pts = by_month[(year, month)]
+        first = pts[0].equity
+        last = pts[-1].equity
+        ret = (last / first - 1.0) if first > 0 else 0.0
+        result.append({"year": year, "month": month, "return": ret})
+    return result
+
+
 def rank_batch(runs: list[SingleRunResult], objective: str) -> BatchRunResult:
     objective = objective.strip().lower()
     ranking = []

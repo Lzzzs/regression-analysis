@@ -76,6 +76,7 @@ class JobService:
             metrics=result["metrics"],
             equity_curve=result["equity_curve"],
             yearly_returns=result.get("yearly_returns", []),
+            monthly_returns=result.get("monthly_returns", []),
             top_drawdowns=result.get("top_drawdowns", []),
         )
         return asdict(response)

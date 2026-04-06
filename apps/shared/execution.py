@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from portfolio_lab.analysis import top_drawdown_events, yearly_returns
+from portfolio_lab.analysis import monthly_returns, top_drawdown_events, yearly_returns
 from portfolio_lab.backtest import BacktestEngine
 from portfolio_lab.models import BacktestSpec, PortfolioSpec, RebalanceFrequency, to_primitive
 
@@ -43,6 +43,7 @@ def execute_backtest_job(
                 "snapshot_id": result.metadata.snapshot_id,
                 "metrics": result.metrics,
                 "yearly_returns": yearly_returns(result),
+                "monthly_returns": monthly_returns(result),
                 "top_drawdowns": top_drawdown_events(result),
                 "equity_curve": to_primitive(result.equity_curve),
                 "metadata": to_primitive(result.metadata),
