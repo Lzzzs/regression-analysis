@@ -33,4 +33,5 @@ class InlineWorker:
             save_result=self.store.save_result,
             mark_completed=self.store.mark_completed,
             mark_failed=self.store.mark_failed,
+            update_job=self.store.update,
         )

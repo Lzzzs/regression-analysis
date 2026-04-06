@@ -22,6 +22,11 @@ type JobItem = {
     rebalance_frequency?: string;
     assets?: { code: string; name?: string; market: string }[];
   };
+  result_summary?: {
+    annualized_return?: number;
+    sharpe_ratio?: number;
+    max_drawdown?: number;
+  };
 };
 
 function portfolioSummary(job: JobItem): string {
@@ -37,6 +42,27 @@ function dateRange(job: JobItem): string {
   const e = job.payload?.end_date;
   if (!s || !e) return '';
   return `${s} ~ ${e}`;
+}
+
+function metricsBadges(job: JobItem) {
+  const s = job.result_summary;
+  if (!s) return null;
+  const fmt = (v: number) => `${(v * 100).toFixed(1)}%`;
+  return (
+    <span className="flex gap-2 text-xs">
+      {s.annualized_return != null && (
+        <span className={s.annualized_return >= 0 ? 'text-green-600' : 'text-red-500'}>
+          年化 {fmt(s.annualized_return)}
+        </span>
+      )}
+      {s.sharpe_ratio != null && (
+        <span className="text-gray-500">夏普 {s.sharpe_ratio.toFixed(2)}</span>
+      )}
+      {s.max_drawdown != null && (
+        <span className="text-red-400">回撤 {fmt(s.max_drawdown)}</span>
+      )}
+    </span>
+  );
 }
 
 const PAGE_SIZE = 20;
@@ -186,6 +212,7 @@ export default function JobsPage() {
                   <td className="px-4 py-3">
                     <span className="text-xs text-gray-700">{portfolioSummary(j)}</span>
                     {dateRange(j) && <span className="block text-xs text-gray-400">{dateRange(j)}</span>}
+                    {metricsBadges(j)}
                   </td>
                   <td className="px-4 py-3">{statusBadge(j.status)}</td>
                   <td className="px-4 py-3 text-gray-500">{formatTime(j.created_at)}</td>
@@ -233,6 +260,7 @@ export default function JobsPage() {
               </div>
               {portfolioSummary(j) && <p className="text-xs text-gray-600 mt-0.5">{portfolioSummary(j)}</p>}
               <div className="text-xs text-gray-400">{formatTime(j.created_at)}{dateRange(j) && ` · ${dateRange(j)}`}</div>
+              {metricsBadges(j)}
               {(j.status === 'dead-letter' || j.status === 'failed') && (
                 <button
                   onClick={() => onRequeue(j.job_id)}

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 from portfolio_lab.backtest import BacktestEngine
 from portfolio_lab.models import BacktestSpec, PortfolioSpec, RebalanceFrequency, to_primitive
+
+_SUMMARY_KEYS = ["annualized_return", "sharpe_ratio", "max_drawdown"]
 
 
 def execute_backtest_job(
@@ -16,6 +17,7 @@ def execute_backtest_job(
     save_result: callable,
     mark_completed: callable,
     mark_failed: callable,
+    update_job: callable | None = None,
 ) -> None:
     """Run a backtest job and persist results. Shared by inline and background workers."""
     try:
@@ -44,5 +46,10 @@ def execute_backtest_job(
             },
         )
         mark_completed(job_id, result.run_id)
+        # Store summary metrics on the job record for list-page display
+        if update_job:
+            summary = {k: result.metrics[k] for k in _SUMMARY_KEYS if k in result.metrics}
+            if summary:
+                update_job(job_id, result_summary=summary)
     except Exception as exc:
         mark_failed(job_id, str(exc))
