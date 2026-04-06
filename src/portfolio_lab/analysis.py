@@ -89,12 +89,40 @@ def analyze_run(
             "sortino_ratio": sortino,
             "calmar_ratio": calmar,
         },
+        "yearly_returns": yearly_returns(run),
         "drawdown_series": drawdown_series,
         "assumptions": {
             "trading_days_per_year": trading_days_per_year,
             "risk_free_rate": risk_free_rate,
         },
     }
+
+
+def yearly_returns(run: SingleRunResult) -> list[dict]:
+    """Compute per-year return breakdown from the equity curve.
+
+    Returns a list of dicts: [{year, start_equity, end_equity, return}].
+    """
+    if len(run.equity_curve) < 2:
+        return []
+
+    by_year: dict[int, list] = {}
+    for pt in run.equity_curve:
+        by_year.setdefault(pt.day.year, []).append(pt)
+
+    result = []
+    for year in sorted(by_year):
+        pts = by_year[year]
+        first = pts[0].equity
+        last = pts[-1].equity
+        ret = (last / first - 1.0) if first > 0 else 0.0
+        result.append({
+            "year": year,
+            "start_equity": first,
+            "end_equity": last,
+            "return": ret,
+        })
+    return result
 
 
 def rank_batch(runs: list[SingleRunResult], objective: str) -> BatchRunResult:
