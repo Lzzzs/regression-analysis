@@ -264,6 +264,19 @@ export default function JobPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
+        {/* 运行中提示 */}
+        {status && (status.status === 'queued' || status.status === 'running') && (
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+            <svg className="animate-spin h-4 w-4 text-amber-600 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+              <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+            </svg>
+            <p className="text-sm text-amber-700">
+              {status.status === 'queued' ? '任务排队中，等待 Worker 处理...' : '回测计算中，请稍候...'}
+            </p>
+          </div>
+        )}
+
         {/* 组合配置 */}
         {status && status.payload_summary && (
           <div className="bg-white border border-gray-100 rounded-xl p-4 mb-6">
