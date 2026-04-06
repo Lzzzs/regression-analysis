@@ -109,16 +109,12 @@ export default function Page() {
       setError(weightOver ? '权重合计超过 100%，请调整后再提交' : '权重合计不足 100%，请调整后再提交');
       return;
     }
-    // Date validations
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Date validations (use string comparison to avoid UTC timezone issues)
     if (startDate >= endDate) {
       setError('开始日期必须早于结束日期');
       return;
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (end > today) {
+    if (endDate > todayStr()) {
       setError('结束日期不能是未来日期');
       return;
     }
