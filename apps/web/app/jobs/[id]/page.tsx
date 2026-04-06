@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Shell from '../../components/Shell';
 import { localizeData, toChineseFieldName, toChineseValue } from '../../../lib/field_localizer';
-import { getJob, getJobResult } from '../../../lib/api';
+import { getJob, getJobResult, requeueJob } from '../../../lib/api';
 
 type EquityItem = { day?: string; equity?: number };
 
@@ -236,6 +236,32 @@ export default function JobPage({ params }: { params: { id: string } }) {
 
         {!status && !error && (
           <p className="text-sm text-gray-400">加载中...</p>
+        )}
+
+        {/* 失败/终止错误提示 */}
+        {status && (status.status === 'failed' || status.status === 'dead-letter') && (
+          <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-6">
+            <p className="text-sm font-semibold text-red-700">
+              {status.status === 'dead-letter' ? '任务已终止（重试次数耗尽）' : '任务执行失败'}
+            </p>
+            {status.error && (
+              <p className="text-xs text-red-600 mt-1 font-mono break-all">{status.error}</p>
+            )}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await requeueJob(params.id);
+                  window.location.reload();
+                } catch (e) {
+                  alert(e instanceof Error ? e.message : '重试失败');
+                }
+              }}
+              className="mt-2 text-xs border border-red-200 rounded-md px-3 py-1.5 text-red-700 hover:bg-red-100 transition-colors"
+            >
+              重新入队
+            </button>
+          </div>
         )}
 
         {/* 组合配置 */}
