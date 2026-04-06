@@ -424,5 +424,50 @@ class TestGoldenCase7_AnalysisMetrics(GoldenCaseBase):
         self.assertGreater(result.metrics["sharpe_ratio"], 0)
 
 
+class TestGoldenCase8_YearlyReturns(GoldenCaseBase):
+    """Verify yearly_returns computation.
+
+    All fixture data is in 2026, so yearly_returns should produce a single
+    entry for year=2026 with the correct return.
+    """
+
+    def test_single_year(self) -> None:
+        from portfolio_lab.analysis import yearly_returns
+
+        result = self.engine.run(
+            PortfolioSpec(weights={"CSI300": 1.0}, base_currency="CNY"),
+            BacktestSpec(
+                snapshot_id=self.snapshot_id,
+                start_date=date(2026, 1, 5),
+                end_date=date(2026, 1, 9),
+                rebalance_frequency=RebalanceFrequency.NONE,
+                base_currency="CNY",
+            ),
+        )
+
+        yr = yearly_returns(result)
+        self.assertEqual(len(yr), 1)
+        self.assertEqual(yr[0]["year"], 2026)
+        _assert_close(self, yr[0]["start_equity"], 1.0, "start_equity")
+        _assert_close(self, yr[0]["end_equity"], 1.001, "end_equity")
+        _assert_close(self, yr[0]["return"], 0.001, "yearly_return")
+
+    def test_empty_curve(self) -> None:
+        from datetime import datetime
+        from portfolio_lab.analysis import yearly_returns
+        from portfolio_lab.models import SingleRunResult, ExperimentRunMetadata
+
+        empty_result = SingleRunResult(
+            run_id="test",
+            portfolio_id="test",
+            metadata=ExperimentRunMetadata(
+                run_id="test", snapshot_id="snap-test",
+                created_at=datetime.now(), input_hash="", data_version="", engine_version="",
+            ),
+            equity_curve=[],
+        )
+        self.assertEqual(yearly_returns(empty_result), [])
+
+
 if __name__ == "__main__":
     unittest.main()
