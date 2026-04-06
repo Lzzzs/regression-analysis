@@ -105,3 +105,5 @@ class JobResultResponse:
     snapshot_id: str
     metrics: dict[str, float]
     equity_curve: list[dict[str, Any]] = field(default_factory=list)
+    yearly_returns: list[dict[str, Any]] = field(default_factory=list)
+    top_drawdowns: list[dict[str, Any]] = field(default_factory=list)

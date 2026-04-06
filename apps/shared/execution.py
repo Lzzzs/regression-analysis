@@ -48,11 +48,11 @@ def execute_backtest_job(
                 "metadata": to_primitive(result.metadata),
             },
         )
-        mark_completed(job_id, result.run_id)
         # Store summary metrics on the job record for list-page display
         if update_job:
             summary = {k: result.metrics[k] for k in _SUMMARY_KEYS if k in result.metrics}
             if summary:
                 update_job(job_id, result_summary=summary)
+        mark_completed(job_id, result.run_id)
     except Exception as exc:
         mark_failed(job_id, str(exc))
