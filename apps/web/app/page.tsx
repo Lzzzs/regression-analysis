@@ -1,10 +1,11 @@
 'use client';
 
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Shell from './components/Shell';
 import AssetPicker, { SelectedAsset } from './components/AssetPicker';
-import { createJobAuto } from '../lib/api';
+import { createJobAuto, listJobs } from '../lib/api';
 import { toChineseValue } from '../lib/field_localizer';
 
 function todayStr(): string {
@@ -101,6 +102,13 @@ export default function Page() {
   const weightOver = totalWeight > 100;
   const weightOk = totalWeight === 100;
   const router = useRouter();
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    listJobs({ status: 'completed', limit: 3 })
+      .then((d) => setRecentJobs(d.items || []))
+      .catch(() => {});
+  }, []);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -180,6 +188,39 @@ export default function Page() {
           <h1 className="text-xl font-bold text-gray-900">提交回测任务</h1>
           <p className="text-sm text-gray-400 mt-1">自动生成快照并创建分析任务</p>
         </div>
+
+        {/* 最近回测 */}
+        {recentJobs.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">最近回测</p>
+              <Link href="/jobs" className="text-xs text-gray-400 hover:text-gray-600">查看全部 →</Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {recentJobs.map((job: any) => {
+                const w = job.payload?.weights || {};
+                const summary = Object.entries(w).map(([c, v]: [string, any]) => `${c} ${Math.round(v * 100)}%`).join(' / ');
+                const rs = job.result_summary;
+                return (
+                  <Link key={job.job_id} href={`/jobs/${job.job_id}`} className="bg-white border border-gray-100 rounded-xl p-3 hover:border-gray-300 transition-colors">
+                    <p className="text-xs text-gray-700 font-medium truncate">{summary || job.job_id}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{job.payload?.start_date} ~ {job.payload?.end_date}</p>
+                    {rs && (
+                      <div className="flex gap-2 mt-1.5 text-xs">
+                        {rs.annualized_return != null && (
+                          <span className={rs.annualized_return >= 0 ? 'text-green-600' : 'text-red-500'}>
+                            年化 {(rs.annualized_return * 100).toFixed(1)}%
+                          </span>
+                        )}
+                        {rs.sharpe_ratio != null && <span className="text-gray-400">夏普 {rs.sharpe_ratio.toFixed(2)}</span>}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           {/* 分析区间 + 频率 */}
