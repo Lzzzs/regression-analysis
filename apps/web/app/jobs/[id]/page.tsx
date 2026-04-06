@@ -361,6 +361,37 @@ export default function JobPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             )}
+
+            {/* Top 回撤事件 */}
+            {Array.isArray(result.top_drawdowns) && result.top_drawdowns.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">主要回撤事件</p>
+                <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-400">开始</th>
+                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-400">最低点</th>
+                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-400">恢复</th>
+                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-400">幅度</th>
+                        <th className="text-right px-4 py-2 text-xs font-semibold text-gray-400">持续天数</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {result.top_drawdowns.map((dd: any, idx: number) => (
+                        <tr key={idx}>
+                          <td className="px-4 py-2 text-gray-500 font-mono text-xs">{dd.start_date}</td>
+                          <td className="px-4 py-2 text-gray-500 font-mono text-xs">{dd.trough_date}</td>
+                          <td className="px-4 py-2 text-gray-500 font-mono text-xs">{dd.end_date ?? '未恢复'}</td>
+                          <td className="px-4 py-2 text-right text-red-500 font-semibold">{(dd.drawdown * 100).toFixed(2)}%</td>
+                          <td className="px-4 py-2 text-right text-gray-500">{dd.duration_days} 天</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
 
